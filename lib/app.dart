@@ -90,11 +90,18 @@ class _DebugDrawer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Home goes back to root with `go` (resets the stack); every other
+    // destination is pushed so the AppBar gets an automatic back arrow
+    // *and* the user can return via system back gesture.
     Widget tile(String label, String route) => ListTile(
           title: Text(label),
           onTap: () {
             Navigator.of(context).pop();
-            context.go(route);
+            if (route == '/') {
+              context.go(route);
+            } else {
+              context.push(route);
+            }
           },
         );
     return Drawer(

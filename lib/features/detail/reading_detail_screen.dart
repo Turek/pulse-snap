@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../core/extensions/datetime_extensions.dart';
 import '../../core/utils/bp_category.dart';
+import '../../core/widgets/back_or_home_button.dart';
 import '../../data/database/app_database.dart';
 import '../../providers.dart';
 
@@ -27,7 +28,10 @@ class ReadingDetailScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final reading = ref.watch(_readingByIdProvider(readingId));
     return Scaffold(
-      appBar: AppBar(title: const Text('Reading')),
+      appBar: AppBar(
+        leading: const BackOrHomeButton(),
+        title: const Text('Reading'),
+      ),
       body: reading.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => Center(child: Text('Failed: $e')),

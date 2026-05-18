@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/widgets/back_or_home_button.dart';
 import '../../data/database/app_database.dart';
 import '../../providers.dart';
 import 'history_provider.dart';
@@ -17,7 +18,10 @@ class HistoryScreen extends ConsumerWidget {
     final currentFilter = ref.watch(historyFilterProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('History')),
+      appBar: AppBar(
+        leading: const BackOrHomeButton(),
+        title: const Text('History'),
+      ),
       body: filtered.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (e, _) => Center(child: Text('Failed: $e')),
