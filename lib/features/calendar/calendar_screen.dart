@@ -6,6 +6,7 @@ import 'package:table_calendar/table_calendar.dart';
 import '../../core/extensions/datetime_extensions.dart';
 import '../../core/utils/bp_category.dart';
 import '../../core/widgets/gemini_key_action.dart';
+import '../../core/widgets/skeleton.dart';
 import '../../data/database/app_database.dart';
 import '../history/widgets/reading_list_tile.dart';
 import 'calendar_provider.dart';
@@ -30,7 +31,10 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
         actions: const [GeminiKeyAction()],
       ),
       body: grouped.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
+        loading: () => const Padding(
+          padding: EdgeInsets.fromLTRB(16, 16, 16, 16),
+          child: Skeleton(height: 320, radius: 16),
+        ),
         error: (e, _) => Center(child: Text('Failed: $e')),
         data: (byDay) {
           final selected = _selectedDay?.startOfDay;

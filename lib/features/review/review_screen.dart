@@ -179,9 +179,46 @@ class ReviewFormState extends ConsumerState<ReviewForm> {
         title: const Text('Review Reading'),
         actions: const [GeminiKeyAction()],
       ),
+      bottomNavigationBar: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+          child: Row(
+            children: [
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: _saving
+                      ? null
+                      : () {
+                          if (context.canPop()) {
+                            context.pop();
+                          } else {
+                            context.go('/scan');
+                          }
+                        },
+                  child: const Text('Retake'),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                flex: 2,
+                child: FilledButton(
+                  onPressed: _canSave && !_saving ? _save : null,
+                  child: _saving
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Text('Save Reading'),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
@@ -277,35 +314,7 @@ class ReviewFormState extends ConsumerState<ReviewForm> {
                 ),
                 maxLines: 2,
               ),
-              const SizedBox(height: 24),
-              FilledButton(
-                onPressed: _canSave && !_saving ? _save : null,
-                child: _saving
-                    ? const SizedBox(
-                        width: 16,
-                        height: 16,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Text('Save Reading'),
-              ),
-              const SizedBox(height: 8),
-              OutlinedButton(
-                onPressed: _saving
-                    ? null
-                    : () {
-                        // Pop back to the live CameraScreen instead of
-                        // pushing a fresh /scan route — the camera
-                        // controller is still initialised so there's no
-                        // black-screen reinit gap.
-                        if (context.canPop()) {
-                          context.pop();
-                        } else {
-                          context.go('/scan');
-                        }
-                      },
-                child: const Text('Retake Photo'),
-              ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 16),
               ExpansionTile(
                 title: const Text('OCR debug'),
                 tilePadding: EdgeInsets.zero,

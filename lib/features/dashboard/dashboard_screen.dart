@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/widgets/skeleton.dart';
 import 'dashboard_provider.dart';
 import 'widgets/latest_reading_card.dart';
 import 'widgets/trend_chart.dart';
@@ -28,7 +29,7 @@ class DashboardScreen extends ConsumerWidget {
         label: const Text('New Reading'),
       ),
       body: stats.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
+        loading: () => const DashboardSkeleton(),
         error: (e, _) => Center(child: Text('Failed to load: $e')),
         data: (s) => !s.hasData
             ? const _EmptyState()
