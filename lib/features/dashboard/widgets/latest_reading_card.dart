@@ -14,36 +14,54 @@ class LatestReadingCard extends StatelessWidget {
     final theme = Theme.of(context);
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.baseline,
-              textBaseline: TextBaseline.alphabetic,
-              children: [
-                Text(
-                  '${reading.systolic ?? '–'} / ${reading.diastolic ?? '–'}',
-                  style: theme.textTheme.displaySmall?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: cat.color,
-                  ),
-                ),
-                const SizedBox(width: 16),
-                const Icon(Icons.favorite, color: Colors.redAccent),
-                const SizedBox(width: 4),
-                Text(
-                  '${reading.pulse ?? '–'}',
-                  style: theme.textTheme.headlineSmall,
-                ),
-              ],
+            Container(
+              width: 4,
+              height: 48,
+              decoration: BoxDecoration(
+                color: cat.color,
+                borderRadius: BorderRadius.circular(2),
+              ),
             ),
-            const SizedBox(height: 8),
-            Text(cat.label, style: theme.textTheme.labelLarge?.copyWith(color: cat.color)),
-            const SizedBox(height: 4),
-            Text(
-              reading.measuredAt.formatDateTime(),
-              style: theme.textTheme.bodySmall,
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.baseline,
+                    textBaseline: TextBaseline.alphabetic,
+                    children: [
+                      Text(
+                        '${reading.systolic ?? '–'} / ${reading.diastolic ?? '–'}',
+                        style: theme.textTheme.headlineSmall?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Icon(Icons.favorite,
+                          size: 14, color: theme.colorScheme.onSurfaceVariant),
+                      const SizedBox(width: 3),
+                      Text(
+                        '${reading.pulse ?? '–'}',
+                        style: theme.textTheme.titleMedium?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    reading.measuredAt.formatDateTime(),
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ],
         ),

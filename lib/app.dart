@@ -12,9 +12,12 @@ import 'features/dashboard/dashboard_screen.dart';
 import 'features/detail/reading_detail_screen.dart';
 import 'features/history/history_screen.dart';
 import 'features/review/review_screen.dart';
+import 'features/settings/settings_provider.dart';
 import 'features/settings/settings_screen.dart';
 
 final _shellNavigatorKey = GlobalKey<NavigatorState>();
+
+const _shellRoutes = ['/', '/history', '/calendar', '/settings'];
 
 final _router = GoRouter(
   initialLocation: '/',
@@ -22,31 +25,31 @@ final _router = GoRouter(
     ShellRoute(
       navigatorKey: _shellNavigatorKey,
       builder: (context, state, child) =>
-          _AppShell(location: state.matchedLocation, child: child),
+          _AppShell(location: state.matchedLocation),
       routes: [
         GoRoute(
           path: '/',
           name: 'dashboard',
           pageBuilder: (context, state) =>
-              const NoTransitionPage(child: DashboardScreen()),
+              const NoTransitionPage(child: SizedBox()),
         ),
         GoRoute(
           path: '/history',
           name: 'history',
           pageBuilder: (context, state) =>
-              const NoTransitionPage(child: HistoryScreen()),
+              const NoTransitionPage(child: SizedBox()),
         ),
         GoRoute(
           path: '/calendar',
           name: 'calendar',
           pageBuilder: (context, state) =>
-              const NoTransitionPage(child: CalendarScreen()),
+              const NoTransitionPage(child: SizedBox()),
         ),
         GoRoute(
           path: '/settings',
           name: 'settings',
           pageBuilder: (context, state) =>
-              const NoTransitionPage(child: SettingsScreen()),
+              const NoTransitionPage(child: SizedBox()),
         ),
       ],
     ),
@@ -92,41 +95,107 @@ class PulseSnapApp extends ConsumerWidget {
   }
 }
 
-/// Wraps shell-routed tabs with a Material 3 NavigationBar at the bottom.
-/// Each tab owns its own AppBar so each can carry its own actions/leading.
-class _AppShell extends StatelessWidget {
+/// The shell ignores ShellRoute's `child` and instead drives all four tabs
+/// itself via a PageView, so the user can swipe horizontally between them
+/// AND tap a NavigationBar destination. Route, PageController, and
+/// NavigationBar.selectedIndex stay in sync via [_currentIndex].
+class _AppShell extends ConsumerStatefulWidget {
   final String location;
-  final Widget child;
-  const _AppShell({required this.location, required this.child});
+  const _AppShell({required this.location});
 
-  static const _destinations = [
-    (icon: Icons.dashboard_outlined, selectedIcon: Icons.dashboard, label: 'Home', route: '/'),
-    (icon: Icons.list_alt_outlined, selectedIcon: Icons.list_alt, label: 'History', route: '/history'),
-    (icon: Icons.calendar_today_outlined, selectedIcon: Icons.calendar_today, label: 'Calendar', route: '/calendar'),
-    (icon: Icons.settings_outlined, selectedIcon: Icons.settings, label: 'Settings', route: '/settings'),
-  ];
+  @override
+  ConsumerState<_AppShell> createState() => _AppShellState();
+}
+
+class _AppShellState extends ConsumerState<_AppShell> {
+  late final PageController _ctrl;
 
   int get _currentIndex {
-    for (var i = 0; i < _destinations.length; i++) {
-      if (_destinations[i].route == location) return i;
+    final i = _shellRoutes.indexOf(widget.location);
+    return i < 0 ? 0 : i;
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = PageController(initialPage: _currentIndex);
+  }
+
+  @override
+  void didUpdateWidget(_AppShell oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.location != widget.location && _ctrl.hasClients) {
+      final target = _currentIndex;
+      if ((_ctrl.page ?? 0).round() != target) {
+        _ctrl.animateToPage(
+          target,
+          duration: const Duration(milliseconds: 240),
+          curve: Curves.easeOutCubic,
+        );
+      }
     }
-    return 0;
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    final keyAsync = ref.watch(geminiApiKeyProvider);
+    final missingKey =
+        keyAsync.maybeWhen(data: (k) => k.isEmpty, orElse: () => false);
+
     return Scaffold(
-      body: child,
+      body: PageView(
+        controller: _ctrl,
+        onPageChanged: (i) {
+          if (i == _currentIndex) return;
+          context.go(_shellRoutes[i]);
+        },
+        children: const [
+          DashboardScreen(),
+          HistoryScreen(),
+          CalendarScreen(),
+          SettingsScreen(),
+        ],
+      ),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _currentIndex,
-        onDestinationSelected: (i) => context.go(_destinations[i].route),
+        onDestinationSelected: (i) => context.go(_shellRoutes[i]),
         destinations: [
-          for (final d in _destinations)
-            NavigationDestination(
-              icon: Icon(d.icon),
-              selectedIcon: Icon(d.selectedIcon),
-              label: d.label,
+          const NavigationDestination(
+            icon: Icon(Icons.dashboard_outlined),
+            selectedIcon: Icon(Icons.dashboard),
+            label: 'Home',
+          ),
+          const NavigationDestination(
+            icon: Icon(Icons.list_alt_outlined),
+            selectedIcon: Icon(Icons.list_alt),
+            label: 'History',
+          ),
+          const NavigationDestination(
+            icon: Icon(Icons.calendar_today_outlined),
+            selectedIcon: Icon(Icons.calendar_today),
+            label: 'Calendar',
+          ),
+          NavigationDestination(
+            icon: Badge(
+              isLabelVisible: missingKey,
+              smallSize: 8,
+              backgroundColor: Theme.of(context).colorScheme.error,
+              child: const Icon(Icons.settings_outlined),
             ),
+            selectedIcon: Badge(
+              isLabelVisible: missingKey,
+              smallSize: 8,
+              backgroundColor: Theme.of(context).colorScheme.error,
+              child: const Icon(Icons.settings),
+            ),
+            label: 'Settings',
+          ),
         ],
       ),
     );
