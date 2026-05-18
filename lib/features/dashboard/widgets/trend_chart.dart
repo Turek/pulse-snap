@@ -4,8 +4,9 @@ import 'package:flutter/material.dart';
 import '../../../core/theme/bp_colours.dart';
 import '../../../data/database/app_database.dart';
 
-/// Compact sparkline-style trend: three smooth lines, no axes, no card,
-/// no legend. Lives directly in the page background.
+/// Compact sparkline-style trend: three smooth lines distinguished by both
+/// colour AND dash pattern (solid/dashed/dotted) for colourblind-friendly
+/// differentiation. Subtle area fill under each line.
 class TrendChart extends StatelessWidget {
   final List<Reading> readings;
   const TrendChart({super.key, required this.readings});
@@ -68,22 +69,34 @@ class TrendChart extends StatelessWidget {
             ),
           ),
           lineBarsData: [
-            _series(sys, BpSeriesColors.systolic),
-            _series(dia, BpSeriesColors.diastolic),
-            _series(pulse, BpSeriesColors.pulse),
+            _series(sys, BpSeriesColors.systolic, dash: null, withFill: true),
+            _series(dia, BpSeriesColors.diastolic, dash: [5, 4]),
+            _series(pulse, BpSeriesColors.pulse, dash: [2, 3]),
           ],
         ),
       ),
     );
   }
 
-  LineChartBarData _series(List<FlSpot> spots, Color color) =>
+  LineChartBarData _series(
+    List<FlSpot> spots,
+    Color color, {
+    List<int>? dash,
+    bool withFill = false,
+  }) =>
       LineChartBarData(
         spots: spots,
         color: color,
         barWidth: 2,
         isCurved: true,
         curveSmoothness: 0.3,
+        dashArray: dash,
         dotData: const FlDotData(show: false),
+        belowBarData: withFill
+            ? BarAreaData(
+                show: true,
+                color: color.withValues(alpha: 0.08),
+              )
+            : null,
       );
 }

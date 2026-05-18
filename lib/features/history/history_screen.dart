@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/widgets/gemini_key_action.dart';
+import '../../core/widgets/skeleton.dart';
 import '../../data/database/app_database.dart';
 import '../../providers.dart';
 import 'history_provider.dart';
@@ -23,7 +24,12 @@ class HistoryScreen extends ConsumerWidget {
         actions: const [GeminiKeyAction()],
       ),
       body: filtered.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
+        loading: () => ListView.separated(
+          padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+          itemCount: 6,
+          separatorBuilder: (context, i) => const SizedBox(height: 8),
+          itemBuilder: (context, i) => const Skeleton(height: 56, radius: 12),
+        ),
         error: (e, _) => Center(child: Text('Failed: $e')),
         data: (rows) => Column(
           children: [
