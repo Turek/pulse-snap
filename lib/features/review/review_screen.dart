@@ -163,25 +163,32 @@ class ReviewFormState extends ConsumerState<ReviewForm> {
                     ),
                   ),
                 ),
-              if (widget.initial.debugInfo != null &&
-                  widget.initial.debugInfo!.isNotEmpty)
-                Padding(
-                  padding: const EdgeInsets.only(top: 8),
-                  child: ExpansionTile(
-                    title: const Text('What ML Kit read'),
-                    tilePadding: EdgeInsets.zero,
-                    childrenPadding: const EdgeInsets.only(bottom: 8),
+              Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Align(
-                        alignment: Alignment.centerLeft,
-                        child: Text(
-                          widget.initial.debugInfo!,
-                          style: Theme.of(context).textTheme.bodySmall,
-                        ),
+                      Text('OCR raw text',
+                          style: Theme.of(context).textTheme.labelMedium),
+                      const SizedBox(height: 4),
+                      SelectableText(
+                        (widget.initial.debugInfo == null ||
+                                widget.initial.debugInfo!.isEmpty)
+                            ? '(ML Kit returned no text)'
+                            : widget.initial.debugInfo!,
+                        style: Theme.of(context).textTheme.bodySmall,
                       ),
                     ],
                   ),
                 ),
+              ),
               const SizedBox(height: 24),
               Row(
                 children: [
