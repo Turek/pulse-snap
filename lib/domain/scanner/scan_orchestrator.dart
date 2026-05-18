@@ -14,6 +14,9 @@ class ScanOrchestrator {
 
   /// Runs scanners in order, returning the first confident & plausible result.
   /// If none qualify, returns the highest-confidence result seen.
+  /// Even a partial result is returned so the UI can pre-fill what was found
+  /// and let the user finish typing the rest — better than blocking on
+  /// "perfect" extraction.
   Future<ScanResult> process(File imageFile) async {
     ScanResult? best;
     for (final scanner in _pipeline) {

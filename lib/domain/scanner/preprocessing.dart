@@ -4,8 +4,11 @@ import 'package:image/image.dart' as img;
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
-/// Sharpens, boosts contrast, and converts to grayscale to improve OCR
-/// accuracy on 7-segment LCD displays.
+/// Minimal preprocessing for ML Kit: ML Kit's text recognizer is robust on
+/// raw colour images, and aggressive sharpen/contrast filters tend to corrupt
+/// 7-segment LCD digits. We only downscale very large images (memory) and
+/// boost contrast slightly. Grayscale conversion and sharpen convolutions
+/// were removed because they hurt accuracy in real-world testing.
 Future<File> preprocessForOcr(File source) async {
   final bytes = await source.readAsBytes();
   img.Image? image = img.decodeImage(bytes);
@@ -13,17 +16,19 @@ Future<File> preprocessForOcr(File source) async {
     throw const FormatException('Cannot decode image for OCR preprocessing');
   }
 
-  image = img.grayscale(image);
-  image = img.adjustColor(image, contrast: 1.5, brightness: 1.1);
-  image = img.convolution(
-    image,
-    filter: [
-      0, -1, 0,
-      -1, 5, -1,
-      0, -1, 0,
-    ],
-    div: 1,
-  );
+  // Downscale very large captures so ML Kit isn't memory-bottlenecked.
+  const maxDim = 2000;
+  if (image.width > maxDim || image.height > maxDim) {
+    image = img.copyResize(
+      image,
+      width: image.width >= image.height ? maxDim : null,
+      height: image.height > image.width ? maxDim : null,
+      interpolation: img.Interpolation.linear,
+    );
+  }
+
+  // Gentle contrast bump only.
+  image = img.adjustColor(image, contrast: 1.15);
 
   final dir = await getTemporaryDirectory();
   final outPath = p.join(
