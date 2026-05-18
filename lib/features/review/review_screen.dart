@@ -8,6 +8,7 @@ import 'package:go_router/go_router.dart';
 import '../../core/utils/bp_category.dart';
 import '../../data/database/app_database.dart';
 import '../../domain/models/scan_result.dart';
+import '../../domain/scanner/scan_artifacts.dart';
 import '../../providers.dart';
 import 'review_provider.dart';
 
@@ -23,7 +24,7 @@ class ReviewScreen extends ConsumerWidget {
         body: const Center(child: Text('No image to review.')),
       );
     }
-    final scan = ref.watch(scanResultProvider(imageFile!));
+    final scan = ref.watch(scanArtifactsProvider(imageFile!));
     return scan.when(
       loading: () => const Scaffold(
         body: Center(child: CircularProgressIndicator()),
@@ -32,15 +33,34 @@ class ReviewScreen extends ConsumerWidget {
         appBar: AppBar(title: const Text('Review')),
         body: Center(child: Text('Scan failed: $e')),
       ),
-      data: (result) => ReviewForm(imageFile: imageFile!, initial: result),
+      data: (artifacts) =>
+          ReviewForm(imageFile: imageFile!, artifacts: artifacts),
     );
   }
 }
 
 class ReviewForm extends ConsumerStatefulWidget {
   final File imageFile;
-  final ScanResult initial;
-  const ReviewForm({super.key, required this.imageFile, required this.initial});
+  final ScanArtifacts artifacts;
+  const ReviewForm({
+    super.key,
+    required this.imageFile,
+    required this.artifacts,
+  });
+
+  // Test seam: build a ReviewForm without running the orchestrator.
+  factory ReviewForm.withInitial({
+    Key? key,
+    required File imageFile,
+    required ScanResult initial,
+  }) =>
+      ReviewForm(
+        key: key,
+        imageFile: imageFile,
+        artifacts: ScanArtifacts(result: initial),
+      );
+
+  ScanResult get initial => artifacts.result;
 
   @override
   ConsumerState<ReviewForm> createState() => ReviewFormState();
@@ -109,6 +129,9 @@ class ReviewFormState extends ConsumerState<ReviewForm> {
           await widget.imageFile.delete();
         }
       } catch (_) {/* best-effort cleanup */}
+      // Crop/binarized debug files are in the OS temp dir — best-effort sweep.
+      _deleteIfExists(widget.artifacts.cropImage);
+      _deleteIfExists(widget.artifacts.binarizedImage);
       if (!mounted) return;
       context.go('/');
     } catch (e) {
@@ -119,11 +142,27 @@ class ReviewFormState extends ConsumerState<ReviewForm> {
     }
   }
 
+  Future<void> _deleteIfExists(File? f) async {
+    if (f == null) return;
+    try {
+      if (await f.exists()) await f.delete();
+    } catch (_) {}
+  }
+
+  void _setSlot({int? sys, int? dia, int? pr}) {
+    setState(() {
+      if (sys != null) _sys.text = sys.toString();
+      if (dia != null) _dia.text = dia.toString();
+      if (pr != null) _pulse.text = pr.toString();
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final r = _current;
     final cat = bpCategory(r.systolic, r.diastolic);
     final lowConfidence = widget.initial.confidence < 0.75;
+    final theme = Theme.of(context);
 
     return Scaffold(
       appBar: AppBar(title: const Text('Review Reading')),
@@ -135,12 +174,13 @@ class ReviewFormState extends ConsumerState<ReviewForm> {
             children: [
               ClipRRect(
                 borderRadius: BorderRadius.circular(12),
-                child: Image.file(widget.imageFile, height: 160, fit: BoxFit.cover),
+                child: Image.file(widget.imageFile,
+                    height: 160, fit: BoxFit.cover),
               ),
               const SizedBox(height: 12),
               Text(
                 'Detected by: ${widget.initial.source.name}',
-                style: Theme.of(context).textTheme.labelLarge,
+                style: theme.textTheme.labelLarge,
               ),
               if (lowConfidence)
                 Padding(
@@ -156,47 +196,51 @@ class ReviewFormState extends ConsumerState<ReviewForm> {
                         Icon(Icons.warning_amber, color: Colors.amber),
                         SizedBox(width: 8),
                         Expanded(
-                          child: Text(
-                              'Low confidence — please check values'),
+                          child: Text('Low confidence — please check values'),
                         ),
                       ],
                     ),
                   ),
                 ),
-              Padding(
-                padding: const EdgeInsets.only(top: 8),
-                child: Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.surfaceContainerHighest,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('OCR raw text',
-                          style: Theme.of(context).textTheme.labelMedium),
-                      const SizedBox(height: 4),
-                      SelectableText(
-                        (widget.initial.debugInfo == null ||
-                                widget.initial.debugInfo!.isEmpty)
-                            ? '(ML Kit returned no text)'
-                            : widget.initial.debugInfo!,
-                        style: Theme.of(context).textTheme.bodySmall,
-                      ),
-                    ],
-                  ),
+              if (widget.artifacts.candidateNumbers.isNotEmpty) ...[
+                const SizedBox(height: 16),
+                Text('Tap a candidate to fill a slot',
+                    style: theme.textTheme.labelMedium),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 6,
+                  children: widget.artifacts.candidateNumbers
+                      .toSet()
+                      .map((n) => _CandidateChip(
+                            value: n,
+                            onSys: () => _setSlot(sys: n),
+                            onDia: () => _setSlot(dia: n),
+                            onPulse: () => _setSlot(pr: n),
+                          ))
+                      .toList(),
                 ),
-              ),
+              ],
               const SizedBox(height: 24),
               Row(
                 children: [
-                  Expanded(child: _NumberField(label: 'SYS', controller: _sys, onChanged: () => setState(() {}))),
+                  Expanded(
+                      child: _NumberField(
+                          label: 'SYS',
+                          controller: _sys,
+                          onChanged: () => setState(() {}))),
                   const SizedBox(width: 8),
-                  Expanded(child: _NumberField(label: 'DIA', controller: _dia, onChanged: () => setState(() {}))),
+                  Expanded(
+                      child: _NumberField(
+                          label: 'DIA',
+                          controller: _dia,
+                          onChanged: () => setState(() {}))),
                   const SizedBox(width: 8),
-                  Expanded(child: _NumberField(label: 'PR', controller: _pulse, onChanged: () => setState(() {}))),
+                  Expanded(
+                      child: _NumberField(
+                          label: 'PR',
+                          controller: _pulse,
+                          onChanged: () => setState(() {}))),
                 ],
               ),
               const SizedBox(height: 16),
@@ -234,10 +278,93 @@ class ReviewFormState extends ConsumerState<ReviewForm> {
                 onPressed: _saving ? null : () => context.go('/scan'),
                 child: const Text('Retake Photo'),
               ),
+              const SizedBox(height: 24),
+              ExpansionTile(
+                title: const Text('OCR debug'),
+                tilePadding: EdgeInsets.zero,
+                childrenPadding: const EdgeInsets.only(bottom: 8),
+                children: [
+                  if (widget.artifacts.cropImage != null) ...[
+                    Text('Cropped LCD region',
+                        style: theme.textTheme.labelSmall),
+                    const SizedBox(height: 4),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: Image.file(widget.artifacts.cropImage!),
+                    ),
+                    const SizedBox(height: 8),
+                  ],
+                  if (widget.artifacts.binarizedImage != null) ...[
+                    Text(
+                      'Binarized (otsu=${widget.artifacts.otsuThreshold}, '
+                      'inverted=${widget.artifacts.otsuInverted})',
+                      style: theme.textTheme.labelSmall,
+                    ),
+                    const SizedBox(height: 4),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: Image.file(widget.artifacts.binarizedImage!),
+                    ),
+                    const SizedBox(height: 8),
+                  ],
+                  if (widget.artifacts.tesseractRawText != null) ...[
+                    Text('Tesseract raw',
+                        style: theme.textTheme.labelSmall),
+                    SelectableText(
+                      widget.artifacts.tesseractRawText!,
+                      style: theme.textTheme.bodySmall,
+                    ),
+                    const SizedBox(height: 8),
+                  ],
+                  if (widget.artifacts.mlkitRawText != null &&
+                      widget.artifacts.mlkitRawText!.isNotEmpty) ...[
+                    Text('ML Kit raw', style: theme.textTheme.labelSmall),
+                    SelectableText(
+                      widget.artifacts.mlkitRawText!,
+                      style: theme.textTheme.bodySmall,
+                    ),
+                  ],
+                ],
+              ),
             ],
           ),
         ),
       ),
+    );
+  }
+}
+
+class _CandidateChip extends StatelessWidget {
+  final int value;
+  final VoidCallback onSys;
+  final VoidCallback onDia;
+  final VoidCallback onPulse;
+  const _CandidateChip({
+    required this.value,
+    required this.onSys,
+    required this.onDia,
+    required this.onPulse,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return PopupMenuButton<String>(
+      onSelected: (s) {
+        switch (s) {
+          case 'sys':
+            onSys();
+          case 'dia':
+            onDia();
+          case 'pr':
+            onPulse();
+        }
+      },
+      itemBuilder: (_) => const [
+        PopupMenuItem(value: 'sys', child: Text('Set as SYS')),
+        PopupMenuItem(value: 'dia', child: Text('Set as DIA')),
+        PopupMenuItem(value: 'pr', child: Text('Set as Pulse')),
+      ],
+      child: Chip(label: Text(value.toString())),
     );
   }
 }

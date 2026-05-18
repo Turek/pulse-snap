@@ -11,6 +11,12 @@ import '../models/scan_result.dart';
 import 'i_scanner.dart';
 import 'mlkit_logic.dart';
 
+class TesseractCandidates {
+  final List<int> candidates;
+  final String rawText;
+  const TesseractCandidates({required this.candidates, required this.rawText});
+}
+
 /// Reads 7-segment LCD digits using Tesseract with a community-trained
 /// `letsgodigital` model. The package does not expose bounding boxes, so we
 /// rely on Tesseract returning numbers in top-to-bottom reading order —
@@ -26,6 +32,56 @@ class TesseractScanner extends IScanner {
 
   @override
   ScannerType get type => ScannerType.tesseract;
+
+  /// Run Tesseract and return raw candidate numbers + raw text, without any
+  /// orchestrator-level assignment logic. Used by the cropping pipeline so
+  /// the orchestrator can do its own ranged-slot assignment.
+  Future<TesseractCandidates> scanForCandidates(File imageFile) async {
+    String tessdata;
+    try {
+      tessdata = await _ensureTessdata();
+    } catch (e) {
+      debugPrint('[PulseSnap Tesseract] traineddata missing: $e');
+      return const TesseractCandidates(candidates: [], rawText: '');
+    }
+    String text;
+    try {
+      text = await FlutterTesseractOcr.extractText(
+        imageFile.path,
+        language: _lang,
+        args: {
+          'tessdata': tessdata,
+          'psm': '6',
+          'preserve_interword_spaces': '1',
+          // letsgodigital only knows 0-9 and a handful of punctuation —
+          // restrict the character set to just digits to drop noise.
+          'tessedit_char_whitelist': '0123456789',
+        },
+      );
+    } catch (e) {
+      debugPrint('[PulseSnap Tesseract] error: $e');
+      return const TesseractCandidates(candidates: [], rawText: '');
+    }
+
+    final lines = text
+        .split(RegExp(r'[\r\n]+'))
+        .map((l) => l.trim())
+        .where((l) => l.isNotEmpty)
+        .toList();
+    final candidates = <int>[];
+    for (final line in lines) {
+      for (final m in RegExp(r'(?<!\d)(\d{2,3})(?!\d)').allMatches(line)) {
+        candidates.add(int.parse(m.group(1)!));
+      }
+    }
+    debugPrint(
+      '[PulseSnap Tesseract2] candidates=$candidates raw="${lines.join(' | ')}"',
+    );
+    return TesseractCandidates(
+      candidates: candidates,
+      rawText: lines.join(' | '),
+    );
+  }
 
   @override
   Future<ScanResult> scan(File imageFile) async {
