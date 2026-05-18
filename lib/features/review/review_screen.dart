@@ -8,6 +8,7 @@ import 'package:go_router/go_router.dart';
 import '../../core/utils/bp_category.dart';
 import '../../core/widgets/back_or_home_button.dart';
 import '../../data/database/app_database.dart';
+import '../settings/settings_provider.dart';
 import '../../domain/models/scan_result.dart';
 import '../../domain/scanner/scan_artifacts.dart';
 import '../../providers.dart';
@@ -170,6 +171,10 @@ class ReviewFormState extends ConsumerState<ReviewForm> {
     final cat = bpCategory(r.systolic, r.diastolic);
     final lowConfidence = widget.initial.confidence < 0.75;
     final theme = Theme.of(context);
+    final keyAsync = ref.watch(geminiApiKeyProvider);
+    final hasGeminiKey =
+        keyAsync.maybeWhen(data: (k) => k.isNotEmpty, orElse: () => false);
+    final usedGemini = widget.initial.source == ScannerType.geminiFlash;
 
     return Scaffold(
       appBar: AppBar(
@@ -189,9 +194,44 @@ class ReviewFormState extends ConsumerState<ReviewForm> {
               ),
               const SizedBox(height: 12),
               Text(
-                'Detected by: ${widget.initial.source.name}',
+                usedGemini
+                    ? 'Detected by: Gemini Flash'
+                    : 'Detected by: ${widget.initial.source.name} (on-device fallback)',
                 style: theme.textTheme.labelLarge,
               ),
+              if (!hasGeminiKey)
+                Padding(
+                  padding: const EdgeInsets.only(top: 8),
+                  child: Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.red.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.red.shade300),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.error_outline, color: Colors.red),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'No Gemini API key — readings will be wrong',
+                                style: TextStyle(fontWeight: FontWeight.bold),
+                              ),
+                              Text(
+                                'On-device OCR can\'t reliably read 7-segment displays. Open Settings and paste a key from aistudio.google.com/apikey.',
+                                style: theme.textTheme.bodySmall,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
               if (lowConfidence)
                 Padding(
                   padding: const EdgeInsets.only(top: 8),

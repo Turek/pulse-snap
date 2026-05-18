@@ -103,16 +103,26 @@ class GeminiFlashScanner extends IScanner {
       }
       debugPrint('[Gemini] raw=$text');
       final parsed = jsonDecode(text) as Map<String, dynamic>;
-      final sys = parsed['systolic'] as int?;
-      final dia = parsed['diastolic'] as int?;
-      final pulse = parsed['pulse'] as int?;
+      // Gemini sometimes returns numbers as floats ("149.0") or strings
+      // ("149") despite the schema; accept both.
+      int? readInt(Object? v) {
+        if (v == null) return null;
+        if (v is int) return v;
+        if (v is num) return v.round();
+        if (v is String) return int.tryParse(v.trim());
+        return null;
+      }
+
+      final sys = readInt(parsed['systolic']);
+      final dia = readInt(parsed['diastolic']);
+      final pulse = readInt(parsed['pulse']);
       return ScanResult(
         systolic: sys,
         diastolic: dia,
         pulse: pulse,
         confidence: 0.95,
         source: ScannerType.geminiFlash,
-        debugInfo: 'gemini: $text',
+        debugInfo: 'gemini ok: $text',
       );
     } on DioException catch (e) {
       debugPrint(
