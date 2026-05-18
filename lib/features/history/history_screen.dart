@@ -28,7 +28,7 @@ class HistoryScreen extends ConsumerStatefulWidget {
 class _HistoryScreenState extends ConsumerState<HistoryScreen> {
   DateTime _focusedDay = DateTime.now();
   DateTime _selectedDay = DateTime.now().startOfDay;
-  CalendarFormat _format = CalendarFormat.twoWeeks;
+  CalendarFormat _format = CalendarFormat.month;
   final _searchCtrl = TextEditingController();
 
   @override
@@ -100,15 +100,17 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
               const SizedBox(height: 12),
               TintedCard(
                 accent: SectionAccent.sky,
-                padding: const EdgeInsets.fromLTRB(8, 4, 8, 6),
+                padding: const EdgeInsets.fromLTRB(6, 4, 6, 6),
                 child: TableCalendar<Reading>(
                   firstDay: DateTime(2020),
                   lastDay: DateTime.now().add(const Duration(days: 365)),
                   focusedDay: _focusedDay,
                   calendarFormat: _format,
+                  rowHeight: 36,
+                  daysOfWeekHeight: 18,
                   availableCalendarFormats: const {
                     CalendarFormat.month: 'Month',
-                    CalendarFormat.twoWeeks: '2 weeks',
+                    CalendarFormat.twoWeeks: '2w',
                     CalendarFormat.week: 'Week',
                   },
                   onFormatChanged: (f) => setState(() => _format = f),
@@ -122,38 +124,76 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                     formatButtonVisible: true,
                     titleCentered: true,
                     formatButtonShowsNext: false,
+                    headerPadding: const EdgeInsets.symmetric(vertical: 4),
+                    titleTextStyle: theme.textTheme.titleSmall ?? const TextStyle(),
+                    leftChevronPadding: const EdgeInsets.all(4),
+                    rightChevronPadding: const EdgeInsets.all(4),
+                    leftChevronIcon: Icon(Icons.chevron_left,
+                        size: 18, color: scheme.onSurfaceVariant),
+                    rightChevronIcon: Icon(Icons.chevron_right,
+                        size: 18, color: scheme.onSurfaceVariant),
                     formatButtonDecoration: BoxDecoration(
                       color: SectionAccent.sky.withValues(alpha: 0.15),
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(10),
                     ),
+                    formatButtonPadding: const EdgeInsets.symmetric(
+                        horizontal: 8, vertical: 2),
                     formatButtonTextStyle: TextStyle(
                       color: scheme.onSurface,
-                      fontSize: 12,
+                      fontSize: 11,
                     ),
                   ),
+                  daysOfWeekStyle: DaysOfWeekStyle(
+                    weekdayStyle: theme.textTheme.labelSmall?.copyWith(
+                          color: scheme.onSurfaceVariant,
+                        ) ??
+                        const TextStyle(),
+                    weekendStyle: theme.textTheme.labelSmall?.copyWith(
+                          color: scheme.onSurfaceVariant,
+                        ) ??
+                        const TextStyle(),
+                  ),
                   calendarStyle: CalendarStyle(
+                    cellMargin: const EdgeInsets.all(2),
+                    cellPadding: EdgeInsets.zero,
+                    defaultTextStyle: theme.textTheme.bodySmall ?? const TextStyle(),
+                    weekendTextStyle: theme.textTheme.bodySmall ?? const TextStyle(),
+                    outsideTextStyle: theme.textTheme.bodySmall?.copyWith(
+                          color: scheme.onSurfaceVariant
+                              .withValues(alpha: 0.45),
+                        ) ??
+                        const TextStyle(),
+                    selectedTextStyle: theme.textTheme.bodySmall?.copyWith(
+                          color: scheme.onPrimary,
+                          fontWeight: FontWeight.w600,
+                        ) ??
+                        const TextStyle(),
+                    todayTextStyle: theme.textTheme.bodySmall?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ) ??
+                        const TextStyle(),
                     selectedDecoration: const BoxDecoration(
                       color: SectionAccent.sky,
                       shape: BoxShape.circle,
                     ),
                     todayDecoration: BoxDecoration(
-                      color: SectionAccent.sky.withValues(alpha: 0.25),
+                      color: SectionAccent.sky.withValues(alpha: 0.22),
                       shape: BoxShape.circle,
                     ),
+                    markersAlignment: Alignment.bottomCenter,
+                    markersOffset: const PositionedOffset(bottom: 2),
                   ),
                   calendarBuilders: CalendarBuilders<Reading>(
                     markerBuilder: (context, day, events) {
                       if (events.isEmpty) return null;
                       final cat = worstCategoryOfDay(events);
-                      return Positioned(
-                        bottom: 4,
-                        child: Container(
-                          width: 5,
-                          height: 5,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: cat.color,
-                          ),
+                      return Container(
+                        margin: const EdgeInsets.only(top: 22),
+                        width: 4,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: cat.color,
                         ),
                       );
                     },
