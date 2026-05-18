@@ -163,6 +163,25 @@ class ReviewFormState extends ConsumerState<ReviewForm> {
                     ),
                   ),
                 ),
+              if (widget.initial.debugInfo != null &&
+                  widget.initial.debugInfo!.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(top: 8),
+                  child: ExpansionTile(
+                    title: const Text('What ML Kit read'),
+                    tilePadding: EdgeInsets.zero,
+                    childrenPadding: const EdgeInsets.only(bottom: 8),
+                    children: [
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          widget.initial.debugInfo!,
+                          style: Theme.of(context).textTheme.bodySmall,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               const SizedBox(height: 24),
               Row(
                 children: [

@@ -31,19 +31,25 @@ class MlKitScanner extends IScanner {
 
     final numbers = <NumberBlock>[];
     final labels = <LabelBlock>[];
+    final rawLines = <String>[];
 
     for (final block in recognized.blocks) {
       for (final line in block.lines) {
         final raw = line.text.trim();
+        rawLines.add(raw);
         final box = line.boundingBox;
+        final conf = line.confidence ?? 0.8;
 
-        if (RegExp(r'^\d{2,3}$').hasMatch(raw)) {
+        // Extract every 2-3 digit number found anywhere in the line —
+        // handles "120/80", "SYS 120", "120 mmHg", "120.0", etc.
+        for (final m in RegExp(r'(?<!\d)(\d{2,3})(?!\d)').allMatches(raw)) {
           numbers.add(NumberBlock(
-            value: int.parse(raw),
+            value: int.parse(m.group(1)!),
             box: box,
-            confidence: line.confidence ?? 0.8,
+            confidence: conf,
           ));
         }
+
         final labelType = classifyLabel(raw);
         if (labelType != null) {
           labels.add(LabelBlock(type: labelType, box: box));
@@ -51,7 +57,10 @@ class MlKitScanner extends IScanner {
       }
     }
 
-    return combineProximityAndPosition(numbers, labels);
+    final result = combineProximityAndPosition(numbers, labels);
+    return result.copyWith(
+      debugInfo: rawLines.where((l) => l.isNotEmpty).join(' | '),
+    );
   }
 
   Future<RecognizedText> _runRecognizer(File preprocessed) async {
