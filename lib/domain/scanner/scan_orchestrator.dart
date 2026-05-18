@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 
 import '../models/scan_result.dart';
+import 'gemini_scanner.dart';
 import 'i_scanner.dart';
 import 'image_processing.dart';
 import 'mlkit_scanner.dart';
@@ -36,18 +37,46 @@ class ScanOrchestrator {
     return best!;
   }
 
-  /// High-fidelity pipeline used by the UI:
-  /// 1. ML Kit reads the whole image and locates chassis labels (SYS/DIA/PR).
-  /// 2. We crop the image to the inferred LCD region around those labels.
-  /// 3. Cropped image is Otsu-binarized (auto invert/no-invert).
+  /// High-fidelity pipeline used by the UI.
+  ///
+  /// If [geminiApiKey] is set, Gemini Flash is the primary scanner and
+  /// returns a result immediately on success (vision LLM reads any 7-seg
+  /// monitor reliably). On failure or when no key is configured, we fall
+  /// back to the on-device pipeline:
+  ///
+  /// 1. ML Kit reads the whole image and locates chassis labels.
+  /// 2. Crop to the inferred LCD region around those labels.
+  /// 3. Otsu-binarize the crop (auto invert/no-invert).
   /// 4. Tesseract runs on the binarized image.
-  /// 5. Numbers are filtered to BP-plausible ranges per slot and assigned
-  ///    in reading order (top → SYS, middle → DIA, bottom → pulse).
+  /// 5. Filter candidates to BP-plausible ranges, assign in reading order.
   ///
   /// Returns [ScanArtifacts] with the result plus every diagnostic the
-  /// review screen needs (crop image, binarized image, all candidate
-  /// numbers, raw OCR text).
-  static Future<ScanArtifacts> scanWithArtifacts(File imageFile) async {
+  /// review screen needs.
+  static Future<ScanArtifacts> scanWithArtifacts(
+    File imageFile, {
+    String geminiApiKey = '',
+  }) async {
+    if (geminiApiKey.isNotEmpty) {
+      final gemini = GeminiFlashScanner(apiKey: geminiApiKey);
+      final geminiResult = await gemini.scan(imageFile);
+      if (geminiResult.isComplete && geminiResult.isPlausible) {
+        return ScanArtifacts(
+          result: geminiResult,
+          tesseractRawText: null,
+          mlkitRawText: geminiResult.debugInfo,
+        );
+      }
+      debugPrint(
+        '[PulseSnap pipeline] Gemini did not produce a usable reading '
+        '(confidence=${geminiResult.confidence}, '
+        'isComplete=${geminiResult.isComplete}, '
+        'isPlausible=${geminiResult.isPlausible}); falling back to on-device OCR',
+      );
+    }
+    return _onDeviceWithArtifacts(imageFile);
+  }
+
+  static Future<ScanArtifacts> _onDeviceWithArtifacts(File imageFile) async {
     final mlkit = MlKitScanner();
     final tess = TesseractScanner();
 
