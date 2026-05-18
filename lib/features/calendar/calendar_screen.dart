@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 import 'package:table_calendar/table_calendar.dart';
 
 import '../../core/extensions/datetime_extensions.dart';
 import '../../core/utils/bp_category.dart';
 import '../../core/widgets/gemini_key_action.dart';
 import '../../core/widgets/skeleton.dart';
+import '../../core/widgets/tinted_card.dart';
 import '../../data/database/app_database.dart';
 import '../history/widgets/reading_list_tile.dart';
 import 'calendar_provider.dart';
@@ -25,6 +27,12 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
   @override
   Widget build(BuildContext context) {
     final grouped = ref.watch(calendarReadingsProvider);
+    final theme = Theme.of(context);
+    final sectionStyle = theme.textTheme.labelLarge?.copyWith(
+      color: theme.colorScheme.onSurfaceVariant,
+      fontWeight: FontWeight.w500,
+      letterSpacing: 0.4,
+    );
     return Scaffold(
       appBar: AppBar(
         title: const Text('Calendar'),
@@ -33,60 +41,97 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
       body: grouped.when(
         loading: () => const Padding(
           padding: EdgeInsets.fromLTRB(16, 16, 16, 16),
-          child: Skeleton(height: 320, radius: 16),
+          child: Skeleton(height: 320, radius: 20),
         ),
         error: (e, _) => Center(child: Text('Failed: $e')),
         data: (byDay) {
           final selected = _selectedDay?.startOfDay;
-          final dayReadings =
-              selected == null ? const <Reading>[] : (byDay[selected] ?? const <Reading>[]);
-          return Column(
+          final dayReadings = selected == null
+              ? const <Reading>[]
+              : (byDay[selected] ?? const <Reading>[]);
+          return ListView(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
             children: [
-              TableCalendar<Reading>(
-                firstDay: DateTime(2020),
-                lastDay: DateTime.now().add(const Duration(days: 365)),
-                focusedDay: _focusedDay,
-                selectedDayPredicate: (d) =>
-                    _selectedDay != null && isSameDay(d, _selectedDay),
-                onDaySelected: (selected, focused) => setState(() {
-                  _selectedDay = selected;
-                  _focusedDay = focused;
-                }),
-                eventLoader: (day) => byDay[day.startOfDay] ?? const [],
-                calendarBuilders: CalendarBuilders<Reading>(
-                  markerBuilder: (context, day, events) {
-                    if (events.isEmpty) return null;
-                    final cat = worstCategoryOfDay(events);
-                    return Positioned(
-                      bottom: 6,
-                      child: Container(
-                        width: 6,
-                        height: 6,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: cat.color,
+              TintedCard(
+                accent: SectionAccent.sky,
+                padding: const EdgeInsets.fromLTRB(8, 8, 8, 8),
+                child: TableCalendar<Reading>(
+                  firstDay: DateTime(2020),
+                  lastDay: DateTime.now().add(const Duration(days: 365)),
+                  focusedDay: _focusedDay,
+                  selectedDayPredicate: (d) =>
+                      _selectedDay != null && isSameDay(d, _selectedDay),
+                  onDaySelected: (selected, focused) => setState(() {
+                    _selectedDay = selected;
+                    _focusedDay = focused;
+                  }),
+                  eventLoader: (day) => byDay[day.startOfDay] ?? const [],
+                  headerStyle: const HeaderStyle(
+                    formatButtonVisible: false,
+                    titleCentered: true,
+                  ),
+                  calendarStyle: CalendarStyle(
+                    selectedDecoration: BoxDecoration(
+                      color: SectionAccent.sky,
+                      shape: BoxShape.circle,
+                    ),
+                    todayDecoration: BoxDecoration(
+                      color: SectionAccent.sky.withValues(alpha: 0.25),
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                  calendarBuilders: CalendarBuilders<Reading>(
+                    markerBuilder: (context, day, events) {
+                      if (events.isEmpty) return null;
+                      final cat = worstCategoryOfDay(events);
+                      return Positioned(
+                        bottom: 6,
+                        child: Container(
+                          width: 6,
+                          height: 6,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: cat.color,
+                          ),
                         ),
-                      ),
-                    );
-                  },
+                      );
+                    },
+                  ),
                 ),
               ),
-              const Divider(),
-              Expanded(
-                child: dayReadings.isEmpty
-                    ? const Center(child: Text('No readings on this day.'))
-                    : ListView.separated(
-                        itemCount: dayReadings.length,
-                        separatorBuilder: (context, i) => const Divider(height: 1),
-                        itemBuilder: (context, i) {
-                          final r = dayReadings[i];
-                          return ReadingListTile(
-                            reading: r,
-                            onTap: () => context.push('/history/${r.id}'),
-                          );
-                        },
+              const SizedBox(height: 20),
+              if (selected != null)
+                Text(
+                  DateFormat('EEEE, d MMM').format(selected).toUpperCase(),
+                  style: sectionStyle,
+                ),
+              const SizedBox(height: 8),
+              if (dayReadings.isEmpty)
+                TintedCard(
+                  accent: SectionAccent.slate,
+                  padding: const EdgeInsets.symmetric(vertical: 24),
+                  child: Center(
+                    child: Text(
+                      'No readings on this day',
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
                       ),
-              ),
+                    ),
+                  ),
+                )
+              else
+                Column(
+                  children: [
+                    for (var i = 0; i < dayReadings.length; i++) ...[
+                      if (i > 0) const SizedBox(height: 8),
+                      ReadingListTile(
+                        reading: dayReadings[i],
+                        onTap: () =>
+                            context.push('/history/${dayReadings[i].id}'),
+                      ),
+                    ],
+                  ],
+                ),
             ],
           );
         },
