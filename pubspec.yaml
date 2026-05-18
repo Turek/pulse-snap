@@ -44,6 +44,7 @@ dependencies:
   permission_handler: ^11.3.0
   dynamic_color: ^1.7.0
   flutter_tesseract_ocr: ^0.4.26
+  google_fonts: ^6.2.1
 
 dev_dependencies:
   flutter_test:

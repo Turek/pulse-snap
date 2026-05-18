@@ -68,16 +68,20 @@ class HistoryScreen extends ConsumerWidget {
               child: rows.isEmpty
                   ? const Center(child: Text('No readings match'))
                   : ListView.separated(
+                      padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
                       itemCount: rows.length,
-                      separatorBuilder: (context, i) => const Divider(height: 1),
+                      separatorBuilder: (context, i) => const SizedBox(height: 8),
                       itemBuilder: (context, i) {
                         final r = rows[i];
                         return Dismissible(
                           key: ValueKey(r.id),
                           background: Container(
-                            color: Colors.red,
+                            decoration: BoxDecoration(
+                              color: Colors.red.withValues(alpha: 0.85),
+                              borderRadius: BorderRadius.circular(20),
+                            ),
                             alignment: Alignment.centerRight,
-                            padding: const EdgeInsets.only(right: 16),
+                            padding: const EdgeInsets.only(right: 20),
                             child: const Icon(Icons.delete,
                                 color: Colors.white),
                           ),
@@ -85,8 +89,7 @@ class HistoryScreen extends ConsumerWidget {
                           onDismissed: (_) => _confirmDelete(context, ref, r),
                           child: ReadingListTile(
                             reading: r,
-                            onTap: () => context
-                                .push('/history/${r.id}'),
+                            onTap: () => context.push('/history/${r.id}'),
                           ),
                         );
                       },

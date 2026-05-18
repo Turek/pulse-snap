@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/widgets/skeleton.dart';
+import '../../core/widgets/tinted_card.dart';
 import 'dashboard_provider.dart';
 import 'widgets/latest_reading_card.dart';
 import 'widgets/trend_chart.dart';
@@ -14,15 +15,14 @@ class DashboardScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final stats = ref.watch(dashboardStatsProvider);
     final theme = Theme.of(context);
-    final sectionStyle = theme.textTheme.titleSmall?.copyWith(
+    final sectionStyle = theme.textTheme.labelLarge?.copyWith(
       color: theme.colorScheme.onSurfaceVariant,
       fontWeight: FontWeight.w500,
+      letterSpacing: 0.4,
     );
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('PulseSnap'),
-      ),
+      appBar: AppBar(title: const Text('PulseSnap')),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => context.push('/scan'),
         icon: const Icon(Icons.camera_alt),
@@ -36,17 +36,17 @@ class DashboardScreen extends ConsumerWidget {
             : ListView(
                 padding: const EdgeInsets.fromLTRB(16, 12, 16, 96),
                 children: [
-                  Text('Latest', style: sectionStyle),
-                  const SizedBox(height: 6),
+                  Text('LATEST', style: sectionStyle),
+                  const SizedBox(height: 8),
                   if (s.latest != null) LatestReadingCard(reading: s.latest!),
-                  const SizedBox(height: 20),
-                  Text('Last 30 days', style: sectionStyle),
-                  const SizedBox(height: 6),
+                  const SizedBox(height: 24),
+                  Text('LAST 30 DAYS', style: sectionStyle),
+                  const SizedBox(height: 8),
                   TrendChart(readings: s.last30Days),
-                  const SizedBox(height: 20),
-                  Text('Averages', style: sectionStyle),
-                  const SizedBox(height: 6),
-                  _AverageRow(
+                  const SizedBox(height: 24),
+                  Text('AVERAGES', style: sectionStyle),
+                  const SizedBox(height: 8),
+                  _AveragesCard(
                     sys: s.avgSys,
                     dia: s.avgDia,
                     pulse: s.avgPulse,
@@ -92,12 +92,11 @@ class _EmptyState extends StatelessWidget {
   }
 }
 
-class _AverageRow extends StatelessWidget {
+class _AveragesCard extends StatelessWidget {
   final double sys;
   final double dia;
   final double pulse;
-  const _AverageRow(
-      {required this.sys, required this.dia, required this.pulse});
+  const _AveragesCard({required this.sys, required this.dia, required this.pulse});
 
   Widget _stat(BuildContext ctx, String label, double v) => Expanded(
         child: Column(
@@ -106,12 +105,15 @@ class _AverageRow extends StatelessWidget {
               label,
               style: Theme.of(ctx).textTheme.labelSmall?.copyWith(
                     color: Theme.of(ctx).colorScheme.onSurfaceVariant,
+                    letterSpacing: 0.6,
                   ),
             ),
-            const SizedBox(height: 2),
+            const SizedBox(height: 4),
             Text(
-              v.toStringAsFixed(0),
-              style: Theme.of(ctx).textTheme.titleLarge,
+              v > 0 ? v.toStringAsFixed(0) : '–',
+              style: Theme.of(ctx).textTheme.headlineSmall?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
             ),
           ],
         ),
@@ -119,16 +121,15 @@ class _AverageRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 12),
-        child: Row(
-          children: [
-            _stat(context, 'SYS', sys),
-            _stat(context, 'DIA', dia),
-            _stat(context, 'PR', pulse),
-          ],
-        ),
+    return TintedCard(
+      accent: SectionAccent.health,
+      padding: const EdgeInsets.symmetric(vertical: 14),
+      child: Row(
+        children: [
+          _stat(context, 'SYS', sys),
+          _stat(context, 'DIA', dia),
+          _stat(context, 'PR', pulse),
+        ],
       ),
     );
   }
