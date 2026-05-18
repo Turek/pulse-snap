@@ -14,17 +14,41 @@ import 'features/history/history_screen.dart';
 import 'features/review/review_screen.dart';
 import 'features/settings/settings_screen.dart';
 
+final _shellNavigatorKey = GlobalKey<NavigatorState>();
+
 final _router = GoRouter(
   initialLocation: '/',
   routes: [
-    GoRoute(
-      path: '/',
-      name: 'dashboard',
-      builder: (context, state) => Scaffold(
-        appBar: AppBar(title: const Text('PulseSnap')),
-        drawer: const _DebugDrawer(),
-        body: const DashboardScreen(),
-      ),
+    ShellRoute(
+      navigatorKey: _shellNavigatorKey,
+      builder: (context, state, child) =>
+          _AppShell(location: state.matchedLocation, child: child),
+      routes: [
+        GoRoute(
+          path: '/',
+          name: 'dashboard',
+          pageBuilder: (context, state) =>
+              const NoTransitionPage(child: DashboardScreen()),
+        ),
+        GoRoute(
+          path: '/history',
+          name: 'history',
+          pageBuilder: (context, state) =>
+              const NoTransitionPage(child: HistoryScreen()),
+        ),
+        GoRoute(
+          path: '/calendar',
+          name: 'calendar',
+          pageBuilder: (context, state) =>
+              const NoTransitionPage(child: CalendarScreen()),
+        ),
+        GoRoute(
+          path: '/settings',
+          name: 'settings',
+          pageBuilder: (context, state) =>
+              const NoTransitionPage(child: SettingsScreen()),
+        ),
+      ],
     ),
     GoRoute(
       path: '/scan',
@@ -41,28 +65,11 @@ final _router = GoRouter(
       ],
     ),
     GoRoute(
-      path: '/history',
-      name: 'history',
-      builder: (context, state) => const HistoryScreen(),
-      routes: [
-        GoRoute(
-          path: ':id',
-          name: 'reading-detail',
-          builder: (context, state) => ReadingDetailScreen(
-            readingId: int.parse(state.pathParameters['id']!),
-          ),
-        ),
-      ],
-    ),
-    GoRoute(
-      path: '/calendar',
-      name: 'calendar',
-      builder: (context, state) => const CalendarScreen(),
-    ),
-    GoRoute(
-      path: '/settings',
-      name: 'settings',
-      builder: (context, state) => const SettingsScreen(),
+      path: '/history/:id',
+      name: 'reading-detail',
+      builder: (context, state) => ReadingDetailScreen(
+        readingId: int.parse(state.pathParameters['id']!),
+      ),
     ),
   ],
 );
@@ -85,37 +92,42 @@ class PulseSnapApp extends ConsumerWidget {
   }
 }
 
-class _DebugDrawer extends StatelessWidget {
-  const _DebugDrawer();
+/// Wraps shell-routed tabs with a Material 3 NavigationBar at the bottom.
+/// Each tab owns its own AppBar so each can carry its own actions/leading.
+class _AppShell extends StatelessWidget {
+  final String location;
+  final Widget child;
+  const _AppShell({required this.location, required this.child});
+
+  static const _destinations = [
+    (icon: Icons.dashboard_outlined, selectedIcon: Icons.dashboard, label: 'Home', route: '/'),
+    (icon: Icons.list_alt_outlined, selectedIcon: Icons.list_alt, label: 'History', route: '/history'),
+    (icon: Icons.calendar_today_outlined, selectedIcon: Icons.calendar_today, label: 'Calendar', route: '/calendar'),
+    (icon: Icons.settings_outlined, selectedIcon: Icons.settings, label: 'Settings', route: '/settings'),
+  ];
+
+  int get _currentIndex {
+    for (var i = 0; i < _destinations.length; i++) {
+      if (_destinations[i].route == location) return i;
+    }
+    return 0;
+  }
 
   @override
   Widget build(BuildContext context) {
-    // Home goes back to root with `go` (resets the stack); every other
-    // destination is pushed so the AppBar gets an automatic back arrow
-    // *and* the user can return via system back gesture.
-    Widget tile(String label, String route) => ListTile(
-          title: Text(label),
-          onTap: () {
-            Navigator.of(context).pop();
-            if (route == '/') {
-              context.go(route);
-            } else {
-              context.push(route);
-            }
-          },
-        );
-    return Drawer(
-      child: SafeArea(
-        child: ListView(
-          children: [
-            const DrawerHeader(child: Text('PulseSnap')),
-            tile('Dashboard', '/'),
-            tile('Scan', '/scan'),
-            tile('History', '/history'),
-            tile('Calendar', '/calendar'),
-            tile('Settings', '/settings'),
-          ],
-        ),
+    return Scaffold(
+      body: child,
+      bottomNavigationBar: NavigationBar(
+        selectedIndex: _currentIndex,
+        onDestinationSelected: (i) => context.go(_destinations[i].route),
+        destinations: [
+          for (final d in _destinations)
+            NavigationDestination(
+              icon: Icon(d.icon),
+              selectedIcon: Icon(d.selectedIcon),
+              label: d.label,
+            ),
+        ],
       ),
     );
   }

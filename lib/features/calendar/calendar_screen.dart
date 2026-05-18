@@ -5,7 +5,7 @@ import 'package:table_calendar/table_calendar.dart';
 
 import '../../core/extensions/datetime_extensions.dart';
 import '../../core/utils/bp_category.dart';
-import '../../core/widgets/back_or_home_button.dart';
+import '../../core/widgets/gemini_key_action.dart';
 import '../../data/database/app_database.dart';
 import '../history/widgets/reading_list_tile.dart';
 import 'calendar_provider.dart';
@@ -26,8 +26,8 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
     final grouped = ref.watch(calendarReadingsProvider);
     return Scaffold(
       appBar: AppBar(
-        leading: const BackOrHomeButton(),
         title: const Text('Calendar'),
+        actions: const [GeminiKeyAction()],
       ),
       body: grouped.when(
         loading: () => const Center(child: CircularProgressIndicator()),

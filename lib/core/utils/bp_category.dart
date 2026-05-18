@@ -19,9 +19,9 @@ extension BpCategoryX on BpCategory {
       case BpCategory.elevated:
         return 'Elevated';
       case BpCategory.stage1:
-        return 'High Stage 1';
+        return 'Hypertension Stage 1';
       case BpCategory.stage2:
-        return 'High Stage 2';
+        return 'Hypertension Stage 2';
       case BpCategory.crisis:
         return 'Hypertensive Crisis';
     }

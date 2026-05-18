@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../core/widgets/back_or_home_button.dart';
+import '../../core/widgets/gemini_key_action.dart';
 import '../../data/database/app_database.dart';
 import '../../providers.dart';
 import 'history_provider.dart';
@@ -19,8 +19,8 @@ class HistoryScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        leading: const BackOrHomeButton(),
         title: const Text('History'),
+        actions: const [GeminiKeyAction()],
       ),
       body: filtered.when(
         loading: () => const Center(child: CircularProgressIndicator()),
