@@ -56,7 +56,13 @@ class _CameraScreenState extends ConsumerState<CameraScreen> {
 
   @override
   void dispose() {
-    _controller?.dispose();
+    final c = _controller;
+    if (c != null) {
+      // Ensure torch is off before the controller is torn down, otherwise
+      // the LED can be left on after navigating away.
+      c.setFlashMode(FlashMode.off).catchError((_) {});
+      c.dispose();
+    }
     super.dispose();
   }
 
@@ -72,6 +78,11 @@ class _CameraScreenState extends ConsumerState<CameraScreen> {
     if (controller == null || !controller.value.isInitialized) return;
     try {
       final picture = await controller.takePicture();
+      // Torch stays on continuously until explicitly cleared.
+      if (_flashOn) {
+        await controller.setFlashMode(FlashMode.off);
+        if (mounted) setState(() => _flashOn = false);
+      }
       if (!mounted) return;
       context.pushNamed('review', extra: File(picture.path));
     } catch (e) {

@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
 
 import '../models/scan_result.dart';
@@ -25,10 +26,30 @@ class MlKitScanner extends IScanner {
 
   @override
   Future<ScanResult> scan(File imageFile) async {
+    // First pass: lightly preprocessed image.
     final preprocessed =
         await (_preprocess?.call(imageFile) ?? preprocessForOcr(imageFile));
-    final recognized = await _runRecognizer(preprocessed);
+    var pass = await _extractFromFile(preprocessed, passLabel: 'preprocessed');
 
+    // Fallback: if the preprocessed pass produced no numbers at all, try
+    // the raw image. Preprocessing helps sometimes, hurts other times — let
+    // both vote.
+    if (pass.numbers.isEmpty) {
+      final raw = await _extractFromFile(imageFile, passLabel: 'raw');
+      if (raw.numbers.isNotEmpty) pass = raw;
+    }
+
+    final result = combineProximityAndPosition(pass.numbers, pass.labels);
+    return result.copyWith(
+      debugInfo: pass.rawLines.where((l) => l.isNotEmpty).join(' | '),
+    );
+  }
+
+  Future<_ExtractedBlocks> _extractFromFile(
+    File file, {
+    required String passLabel,
+  }) async {
+    final recognized = await _runRecognizer(file);
     final numbers = <NumberBlock>[];
     final labels = <LabelBlock>[];
     final rawLines = <String>[];
@@ -40,8 +61,6 @@ class MlKitScanner extends IScanner {
         final box = line.boundingBox;
         final conf = line.confidence ?? 0.8;
 
-        // Extract every 2-3 digit number found anywhere in the line —
-        // handles "120/80", "SYS 120", "120 mmHg", "120.0", etc.
         for (final m in RegExp(r'(?<!\d)(\d{2,3})(?!\d)').allMatches(raw)) {
           numbers.add(NumberBlock(
             value: int.parse(m.group(1)!),
@@ -57,20 +76,35 @@ class MlKitScanner extends IScanner {
       }
     }
 
-    final result = combineProximityAndPosition(numbers, labels);
-    return result.copyWith(
-      debugInfo: rawLines.where((l) => l.isNotEmpty).join(' | '),
+    debugPrint(
+      '[PulseSnap OCR pass=$passLabel] lines=${rawLines.length} '
+      'numbers=${numbers.map((n) => n.value).toList()} '
+      'labels=${labels.map((l) => l.type.name).toList()}\n'
+      'raw="${rawLines.join(' | ')}"',
     );
+
+    return _ExtractedBlocks(numbers: numbers, labels: labels, rawLines: rawLines);
   }
 
-  Future<RecognizedText> _runRecognizer(File preprocessed) async {
-    if (_recognize != null) return _recognize(preprocessed);
+  Future<RecognizedText> _runRecognizer(File file) async {
+    if (_recognize != null) return _recognize(file);
     final recognizer = TextRecognizer(script: TextRecognitionScript.latin);
     try {
-      final input = InputImage.fromFile(preprocessed);
+      final input = InputImage.fromFile(file);
       return await recognizer.processImage(input);
     } finally {
       await recognizer.close();
     }
   }
+}
+
+class _ExtractedBlocks {
+  final List<NumberBlock> numbers;
+  final List<LabelBlock> labels;
+  final List<String> rawLines;
+  _ExtractedBlocks({
+    required this.numbers,
+    required this.labels,
+    required this.rawLines,
+  });
 }
