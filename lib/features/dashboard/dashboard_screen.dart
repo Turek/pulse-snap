@@ -96,39 +96,78 @@ class _AveragesCard extends StatelessWidget {
   final double sys;
   final double dia;
   final double pulse;
-  const _AveragesCard({required this.sys, required this.dia, required this.pulse});
+  const _AveragesCard(
+      {required this.sys, required this.dia, required this.pulse});
 
-  Widget _stat(BuildContext ctx, String label, double v) => Expanded(
-        child: Column(
-          children: [
-            Text(
-              label,
-              style: Theme.of(ctx).textTheme.labelSmall?.copyWith(
-                    color: Theme.of(ctx).colorScheme.onSurfaceVariant,
-                    letterSpacing: 0.6,
-                  ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              v > 0 ? v.toStringAsFixed(0) : '–',
-              style: Theme.of(ctx).textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
-            ),
-          ],
-        ),
-      );
+  String _v(double v) => v > 0 ? v.toStringAsFixed(0) : '–';
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
     return TintedCard(
       accent: SectionAccent.health,
-      padding: const EdgeInsets.symmetric(vertical: 14),
+      padding: const EdgeInsets.fromLTRB(20, 18, 20, 18),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.baseline,
+        textBaseline: TextBaseline.alphabetic,
         children: [
-          _stat(context, 'SYS', sys),
-          _stat(context, 'DIA', dia),
-          _stat(context, 'PR', pulse),
+          Text(
+            _v(sys),
+            style: theme.textTheme.headlineLarge?.copyWith(
+              fontWeight: FontWeight.w700,
+              height: 1,
+              letterSpacing: -1,
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 6),
+            child: Text(
+              '/',
+              style: theme.textTheme.headlineSmall?.copyWith(
+                color: scheme.onSurfaceVariant,
+                fontWeight: FontWeight.w300,
+              ),
+            ),
+          ),
+          Text(
+            _v(dia),
+            style: theme.textTheme.headlineMedium?.copyWith(
+              fontWeight: FontWeight.w600,
+              color: scheme.onSurfaceVariant,
+              height: 1,
+            ),
+          ),
+          const SizedBox(width: 6),
+          Padding(
+            padding: const EdgeInsets.only(bottom: 2),
+            child: Text(
+              'mmHg',
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: scheme.onSurfaceVariant,
+              ),
+            ),
+          ),
+          const Spacer(),
+          Icon(Icons.favorite, size: 14, color: scheme.onSurfaceVariant),
+          const SizedBox(width: 4),
+          Text(
+            _v(pulse),
+            style: theme.textTheme.titleMedium?.copyWith(
+              color: scheme.onSurfaceVariant,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(width: 2),
+          Padding(
+            padding: const EdgeInsets.only(top: 2),
+            child: Text(
+              'bpm',
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: scheme.onSurfaceVariant,
+              ),
+            ),
+          ),
         ],
       ),
     );
