@@ -42,7 +42,7 @@ void main() {
 
   testWidgets('shows low-confidence banner when initial < 0.75',
       (tester) async {
-    await tester.pumpWidget(_host(ReviewForm(
+    await tester.pumpWidget(_host(ReviewForm.withInitial(
       imageFile: image,
       initial: const ScanResult(
         systolic: 120,
@@ -57,7 +57,7 @@ void main() {
   });
 
   testWidgets('save button disabled with implausible value', (tester) async {
-    await tester.pumpWidget(_host(ReviewForm(
+    await tester.pumpWidget(_host(ReviewForm.withInitial(
       imageFile: image,
       initial: const ScanResult(
         systolic: 9,
@@ -76,7 +76,7 @@ void main() {
 
   testWidgets('save button enabled with plausible complete reading',
       (tester) async {
-    await tester.pumpWidget(_host(ReviewForm(
+    await tester.pumpWidget(_host(ReviewForm.withInitial(
       imageFile: image,
       initial: const ScanResult(
         systolic: 110,

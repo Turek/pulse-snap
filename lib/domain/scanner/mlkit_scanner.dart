@@ -86,6 +86,23 @@ class MlKitScanner extends IScanner {
     return _ExtractedBlocks(numbers: numbers, labels: labels, rawLines: rawLines);
   }
 
+  /// Returns just the label boxes detected by ML Kit, without the
+  /// number-extraction step. Used by the cropping pipeline to find the
+  /// LCD region.
+  Future<List<LabelBlock>> extractLabelBoxes(File imageFile) async {
+    final recognized = await _runRecognizer(imageFile);
+    final labels = <LabelBlock>[];
+    for (final block in recognized.blocks) {
+      for (final line in block.lines) {
+        final t = classifyLabel(line.text.trim());
+        if (t != null) {
+          labels.add(LabelBlock(type: t, box: line.boundingBox));
+        }
+      }
+    }
+    return labels;
+  }
+
   Future<RecognizedText> _runRecognizer(File file) async {
     if (_recognize != null) return _recognize(file);
     final recognizer = TextRecognizer(script: TextRecognitionScript.latin);
