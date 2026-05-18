@@ -1,4 +1,4 @@
-enum ScannerType { mlKit, tflite, geminiFlash, manual }
+enum ScannerType { mlKit, tflite, tesseract, geminiFlash, manual }
 
 class ScanResult {
   final int? systolic;
