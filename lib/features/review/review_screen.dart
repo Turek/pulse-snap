@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/utils/bp_category.dart';
+import '../../core/widgets/back_or_home_button.dart';
 import '../../data/database/app_database.dart';
 import '../../domain/models/scan_result.dart';
 import '../../domain/scanner/scan_artifacts.dart';
@@ -20,7 +21,10 @@ class ReviewScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     if (imageFile == null) {
       return Scaffold(
-        appBar: AppBar(title: const Text('Review')),
+        appBar: AppBar(
+          leading: const BackOrHomeButton(),
+          title: const Text('Review'),
+        ),
         body: const Center(child: Text('No image to review.')),
       );
     }
@@ -30,7 +34,10 @@ class ReviewScreen extends ConsumerWidget {
         body: Center(child: CircularProgressIndicator()),
       ),
       error: (e, _) => Scaffold(
-        appBar: AppBar(title: const Text('Review')),
+        appBar: AppBar(
+          leading: const BackOrHomeButton(),
+          title: const Text('Review'),
+        ),
         body: Center(child: Text('Scan failed: $e')),
       ),
       data: (artifacts) =>
@@ -165,7 +172,10 @@ class ReviewFormState extends ConsumerState<ReviewForm> {
     final theme = Theme.of(context);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Review Reading')),
+      appBar: AppBar(
+        leading: const BackOrHomeButton(),
+        title: const Text('Review Reading'),
+      ),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(16),
