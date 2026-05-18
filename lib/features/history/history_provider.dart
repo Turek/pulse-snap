@@ -1,43 +1,9 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../core/extensions/datetime_extensions.dart';
+import '../../core/utils/bp_category.dart';
 import '../../data/database/app_database.dart';
 import '../../providers.dart';
-
-enum HistoryFilter { today, sevenDays, thirtyDays, all }
-
-extension HistoryFilterX on HistoryFilter {
-  String get label {
-    switch (this) {
-      case HistoryFilter.today:
-        return 'Today';
-      case HistoryFilter.sevenDays:
-        return '7 Days';
-      case HistoryFilter.thirtyDays:
-        return '30 Days';
-      case HistoryFilter.all:
-        return 'All';
-    }
-  }
-
-  DateTime? cutoff(DateTime now) {
-    switch (this) {
-      case HistoryFilter.today:
-        return DateTime(now.year, now.month, now.day);
-      case HistoryFilter.sevenDays:
-        return now.subtract(const Duration(days: 7));
-      case HistoryFilter.thirtyDays:
-        return now.subtract(const Duration(days: 30));
-      case HistoryFilter.all:
-        return null;
-    }
-  }
-}
-
-class HistoryFilterNotifier extends Notifier<HistoryFilter> {
-  @override
-  HistoryFilter build() => HistoryFilter.all;
-  void set(HistoryFilter f) => state = f;
-}
 
 class HistorySearchNotifier extends Notifier<String> {
   @override
@@ -45,36 +11,48 @@ class HistorySearchNotifier extends Notifier<String> {
   void set(String s) => state = s;
 }
 
-final historyFilterProvider =
-    NotifierProvider<HistoryFilterNotifier, HistoryFilter>(
-        HistoryFilterNotifier.new);
 final historySearchProvider =
     NotifierProvider<HistorySearchNotifier, String>(HistorySearchNotifier.new);
 
-List<Reading> applyHistoryFilter({
-  required List<Reading> all,
-  required HistoryFilter filter,
-  required String search,
-  required DateTime now,
-}) {
-  final cutoff = filter.cutoff(now);
-  return all.where((r) {
-    if (cutoff != null && r.measuredAt.isBefore(cutoff)) return false;
-    if (search.isEmpty) return true;
-    final q = search.toLowerCase();
-    return (r.notes?.toLowerCase().contains(q) ?? false) ||
-        r.measuredAt.toString().toLowerCase().contains(q);
-  }).toList();
+Map<DateTime, List<Reading>> groupByDay(List<Reading> readings) {
+  final out = <DateTime, List<Reading>>{};
+  for (final r in readings) {
+    final day = r.measuredAt.startOfDay;
+    (out[day] ??= []).add(r);
+  }
+  return out;
 }
 
-final filteredReadingsProvider = Provider<AsyncValue<List<Reading>>>((ref) {
-  final readings = ref.watch(readingsProvider);
-  final filter = ref.watch(historyFilterProvider);
-  final search = ref.watch(historySearchProvider);
-  return readings.whenData((all) => applyHistoryFilter(
-        all: all,
-        filter: filter,
-        search: search,
-        now: DateTime.now(),
-      ));
+BpCategory worstCategoryOfDay(List<Reading> readings) {
+  var worst = BpCategory.unknown;
+  for (final r in readings) {
+    final c = bpCategory(r.systolic, r.diastolic);
+    if (c.index > worst.index) worst = c;
+  }
+  return worst;
+}
+
+bool _matchesSearch(Reading r, String q) {
+  if (q.isEmpty) return true;
+  final lower = q.toLowerCase();
+  return (r.notes?.toLowerCase().contains(lower) ?? false);
+}
+
+/// Readings grouped by day (for calendar dots) — independent of search,
+/// so the calendar always shows all dates that have readings.
+final readingsByDayProvider =
+    Provider<AsyncValue<Map<DateTime, List<Reading>>>>((ref) {
+  return ref.watch(readingsProvider).whenData(groupByDay);
 });
+
+/// Filtered list for the currently selected day, narrowed by the active
+/// search query.
+List<Reading> readingsForDay({
+  required Map<DateTime, List<Reading>> byDay,
+  required DateTime day,
+  required String search,
+}) {
+  final list = byDay[day.startOfDay] ?? const <Reading>[];
+  return list.where((r) => _matchesSearch(r, search)).toList()
+    ..sort((a, b) => b.measuredAt.compareTo(a.measuredAt));
+}

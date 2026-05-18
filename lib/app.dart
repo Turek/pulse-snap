@@ -6,7 +6,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import 'core/theme/app_theme.dart';
-import 'features/calendar/calendar_screen.dart';
 import 'features/camera/camera_screen.dart';
 import 'features/dashboard/dashboard_screen.dart';
 import 'features/detail/reading_detail_screen.dart';
@@ -17,7 +16,7 @@ import 'features/settings/settings_screen.dart';
 
 final _shellNavigatorKey = GlobalKey<NavigatorState>();
 
-const _shellRoutes = ['/', '/history', '/calendar', '/settings'];
+const _shellRoutes = ['/', '/history', '/settings'];
 
 final _router = GoRouter(
   initialLocation: '/',
@@ -36,12 +35,6 @@ final _router = GoRouter(
         GoRoute(
           path: '/history',
           name: 'history',
-          pageBuilder: (context, state) =>
-              const NoTransitionPage(child: SizedBox()),
-        ),
-        GoRoute(
-          path: '/calendar',
-          name: 'calendar',
           pageBuilder: (context, state) =>
               const NoTransitionPage(child: SizedBox()),
         ),
@@ -158,7 +151,6 @@ class _AppShellState extends ConsumerState<_AppShell> {
         children: const [
           DashboardScreen(),
           HistoryScreen(),
-          CalendarScreen(),
           SettingsScreen(),
         ],
       ),
@@ -172,14 +164,9 @@ class _AppShellState extends ConsumerState<_AppShell> {
             label: 'Home',
           ),
           const NavigationDestination(
-            icon: Icon(Icons.list_alt_outlined),
-            selectedIcon: Icon(Icons.list_alt),
-            label: 'History',
-          ),
-          const NavigationDestination(
             icon: Icon(Icons.calendar_today_outlined),
             selectedIcon: Icon(Icons.calendar_today),
-            label: 'Calendar',
+            label: 'History',
           ),
           NavigationDestination(
             icon: Badge(
