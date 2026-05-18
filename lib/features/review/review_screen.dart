@@ -275,7 +275,19 @@ class ReviewFormState extends ConsumerState<ReviewForm> {
               ),
               const SizedBox(height: 8),
               OutlinedButton(
-                onPressed: _saving ? null : () => context.go('/scan'),
+                onPressed: _saving
+                    ? null
+                    : () {
+                        // Pop back to the live CameraScreen instead of
+                        // pushing a fresh /scan route — the camera
+                        // controller is still initialised so there's no
+                        // black-screen reinit gap.
+                        if (context.canPop()) {
+                          context.pop();
+                        } else {
+                          context.go('/scan');
+                        }
+                      },
                 child: const Text('Retake Photo'),
               ),
               const SizedBox(height: 24),
