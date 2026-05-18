@@ -23,12 +23,48 @@ table_calendar · google_mlkit_text_recognition · camera · image_picker
 ## Run
 
 ```bash
+git clone --recurse-submodules <repo>      # or after a plain clone:
+git submodule update --init --recursive    # pulls letsgodigital traineddata
 flutter pub get
 dart run build_runner build
-flutter run                        # picks up the first available device
+flutter run                                # picks up the first available device
 ```
 
 Min OS: iOS 15 / Android API 26. Bundle ID `com.pulsesnap.app`.
+
+## OCR pipeline
+
+PulseSnap uses two on-device OCR engines, run in order by
+`ScanOrchestrator.mvp()`:
+
+1. **Tesseract with `letsgodigital`** — purpose-built for 7-segment LCD
+   displays. This is the primary engine. It reads the digits on the BP
+   monitor screen.
+2. **Google ML Kit (Latin)** — fallback for monitors whose chassis labels
+   ("SYS", "DIA", "PR") are useful for proximity matching, or for any
+   case where Tesseract returns nothing.
+
+The orchestrator short-circuits on the first confident + plausible
+result. If neither engine returns a full reading, the best partial
+result is shown so the user can finish typing what was missed.
+
+### Tesseract trained data
+
+`letsgodigital.traineddata` is the community 7-seg model. It lives in a
+git submodule under `vendor/display_ocr/` (upstream:
+[arturaugusto/display_ocr](https://github.com/arturaugusto/display_ocr)).
+The file is declared in `pubspec.yaml` as a Flutter asset and copied to
+`<app-docs>/tessdata/letsgodigital.traineddata` on first scan, where the
+Tesseract plugin reads it from.
+
+If you clone without submodules, the submodule directory will be empty
+and the scanner will log:
+
+```
+[PulseSnap Tesseract] traineddata missing — drop letsgodigital.traineddata into …
+```
+
+…and fall through to ML Kit. Run `git submodule update --init` to fix.
 
 ## Test
 

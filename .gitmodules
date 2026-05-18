@@ -1,0 +1,3 @@
+[submodule "vendor/display_ocr"]
+	path = vendor/display_ocr
+	url = https://github.com/arturaugusto/display_ocr.git

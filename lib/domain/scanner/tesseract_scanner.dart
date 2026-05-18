@@ -113,8 +113,8 @@ class TesseractScanner extends IScanner {
     }
     final target = File(p.join(tessdataDir.path, '$_lang.traineddata'));
     if (!target.existsSync()) {
-      final data =
-          await rootBundle.load('assets/tessdata/$_lang.traineddata');
+      final data = await rootBundle
+          .load('vendor/display_ocr/letsgodigital/$_lang.traineddata');
       await target.writeAsBytes(data.buffer.asUint8List());
     }
     // flutter_tesseract_ocr expects the parent directory (containing

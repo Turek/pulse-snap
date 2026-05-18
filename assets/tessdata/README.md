@@ -1,16 +1,9 @@
-# Tessdata setup
+# Tessdata
 
-Place a 7-segment-trained Tesseract traineddata file at:
+The `letsgodigital.traineddata` model is pulled in as a git submodule from
+[arturaugusto/display_ocr](https://github.com/arturaugusto/display_ocr) at
+`vendor/display_ocr/letsgodigital/letsgodigital.traineddata` and bundled
+directly as a Flutter asset. See the top-level README for setup steps.
 
-    assets/tessdata/letsgodigital.traineddata
-
-Recommended source: <https://github.com/arturaugusto/display_ocr/tree/master/letsgodigital>
-or any community-trained 7-seg model named `letsgodigital.traineddata`.
-
-The file is not committed to git because it's an external trained model
-(~1 MB). After adding it, run `flutter pub get` and rebuild.
-
-If you want to skip the manual download and just use Latin-text OCR
-without 7-seg support, drop in `eng.traineddata` instead and rename it
-to `letsgodigital.traineddata` — extraction quality on 7-seg LCDs will
-be poor.
+This folder is reserved for any additional traineddata files we add later
+(e.g. `eng.traineddata` for chassis-label OCR fallback).
