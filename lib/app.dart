@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:dynamic_color/dynamic_color.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -102,10 +103,37 @@ class _AppShell extends ConsumerStatefulWidget {
 
 class _AppShellState extends ConsumerState<_AppShell> {
   late final PageController _ctrl;
+  DateTime? _lastBackPress;
 
   int get _currentIndex {
     final i = _shellRoutes.indexOf(widget.location);
     return i < 0 ? 0 : i;
+  }
+
+  /// Handles system back: jumps back to Home if we're on another tab;
+  /// otherwise shows "press back again to exit" once and only lets the
+  /// system pop (exiting the app) on a second press within 2 seconds.
+  bool _handleBack(BuildContext context) {
+    if (_currentIndex != 0) {
+      context.go('/');
+      return false; // consumed
+    }
+    final now = DateTime.now();
+    if (_lastBackPress == null ||
+        now.difference(_lastBackPress!) > const Duration(seconds: 2)) {
+      _lastBackPress = now;
+      ScaffoldMessenger.of(context)
+        ..clearSnackBars()
+        ..showSnackBar(
+          const SnackBar(
+            content: Text('Press back again to exit'),
+            duration: Duration(seconds: 2),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      return false; // consumed; wait for second press
+    }
+    return true; // allow pop → OS closes the app
   }
 
   @override
@@ -141,7 +169,16 @@ class _AppShellState extends ConsumerState<_AppShell> {
     final missingKey =
         keyAsync.maybeWhen(data: (k) => k.isEmpty, orElse: () => false);
 
-    return Scaffold(
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (didPop) return;
+        if (_handleBack(context)) {
+          // Allow the system to actually pop (exit the app).
+          SystemNavigator.pop();
+        }
+      },
+      child: Scaffold(
       body: PageView(
         controller: _ctrl,
         onPageChanged: (i) {
@@ -185,6 +222,7 @@ class _AppShellState extends ConsumerState<_AppShell> {
           ),
         ],
       ),
+    ),
     );
   }
 }
