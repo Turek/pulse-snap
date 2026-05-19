@@ -98,7 +98,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
               ),
               const SizedBox(height: 12),
               TintedCard(
-                accent: SectionAccent.sky,
+                accent: scheme.primary,
                 padding: const EdgeInsets.fromLTRB(6, 4, 6, 6),
                 child: TableCalendar<ReadingWithTags>(
                   firstDay: DateTime(2020),
@@ -132,7 +132,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                     rightChevronIcon: Icon(Icons.chevron_right,
                         size: 18, color: scheme.onSurfaceVariant),
                     formatButtonDecoration: BoxDecoration(
-                      color: SectionAccent.sky.withValues(alpha: 0.15),
+                      color: scheme.primaryContainer.withValues(alpha: 0.6),
                       borderRadius: BorderRadius.circular(10),
                     ),
                     formatButtonPadding: const EdgeInsets.symmetric(
@@ -163,20 +163,22 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                         ) ??
                         const TextStyle(),
                     selectedTextStyle: theme.textTheme.bodySmall?.copyWith(
-                          color: scheme.onPrimary,
+                          color: scheme.onPrimaryContainer,
                           fontWeight: FontWeight.w600,
                         ) ??
                         const TextStyle(),
                     todayTextStyle: theme.textTheme.bodySmall?.copyWith(
                           fontWeight: FontWeight.w600,
+                          color: scheme.onPrimaryContainer,
                         ) ??
                         const TextStyle(),
-                    selectedDecoration: const BoxDecoration(
-                      color: SectionAccent.sky,
+                    selectedDecoration: BoxDecoration(
+                      color: scheme.primaryContainer,
                       shape: BoxShape.circle,
+                      border: Border.all(color: scheme.primary, width: 1.5),
                     ),
                     todayDecoration: BoxDecoration(
-                      color: SectionAccent.sky.withValues(alpha: 0.22),
+                      color: scheme.primaryContainer.withValues(alpha: 0.45),
                       shape: BoxShape.circle,
                     ),
                     markersAlignment: Alignment.bottomCenter,
@@ -189,13 +191,18 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                       final color = status == null
                           ? scheme.onSurfaceVariant
                           : bpStatusColor(status);
+                      // Outline matches the cell background so the dot
+                      // doesn't blend into the today/selected ring stroke.
                       return Container(
-                        margin: const EdgeInsets.only(top: 22),
-                        width: 4,
-                        height: 4,
+                        width: 7,
+                        height: 7,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
                           color: color,
+                          border: Border.all(
+                            color: scheme.surface,
+                            width: 1.2,
+                          ),
                         ),
                       );
                     },

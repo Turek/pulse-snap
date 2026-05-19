@@ -2,15 +2,14 @@
 ///
 /// `custom...` is a UI affordance, not a saved tag value — it is NOT
 /// included in this list.
-const List<String> defaultTags = [
-  'before medication',
-  'after medication',
-  'after coffee',
+const List<String> defaultTags = <String>[
+  'medication',
+  'coffee',
   'after exercise',
+  'workout',
   'stress',
   'headache',
   'dizziness',
-  'lying',
-  'sitting',
-  'standing',
+  'sick',
+  'tired',
 ];

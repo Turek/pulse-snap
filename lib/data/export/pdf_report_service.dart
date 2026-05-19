@@ -16,10 +16,12 @@ const _footerText =
     'This report contains home-monitored readings recorded in PulseSnap. '
     'It is intended to support review and discussion with a clinician and is not a diagnosis.';
 
+// matches in-app primary FAB accent
+const PdfColor _accent = PdfColor.fromInt(0xFF1B6CA8);
+
 class PdfReportService implements IReportExportService {
-  final bool includeChart;
   final bool compress;
-  PdfReportService({this.includeChart = true, this.compress = true});
+  PdfReportService({this.compress = true});
 
   @override
   Future<Uint8List> buildPdfReport({
@@ -63,11 +65,20 @@ class PdfReportService implements IReportExportService {
         build: (ctx) => pw.Column(
           crossAxisAlignment: pw.CrossAxisAlignment.start,
           children: [
-            pw.Text(
-              'PulseSnap Blood Pressure & Pulse Report',
-              style: pw.TextStyle(
-                fontSize: 18,
-                fontWeight: pw.FontWeight.bold,
+            pw.Container(
+              width: double.infinity,
+              padding: const pw.EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+              decoration: const pw.BoxDecoration(
+                color: _accent,
+                borderRadius: pw.BorderRadius.all(pw.Radius.circular(4)),
+              ),
+              child: pw.Text(
+                'PulseSnap Blood Pressure & Pulse Report',
+                style: pw.TextStyle(
+                  fontSize: 18,
+                  fontWeight: pw.FontWeight.bold,
+                  color: PdfColors.white,
+                ),
               ),
             ),
             pw.SizedBox(height: 6),
@@ -94,18 +105,16 @@ class PdfReportService implements IReportExportService {
             pw.SizedBox(height: 14),
             _summaryGrid(summary),
             pw.SizedBox(height: 14),
-            if (includeChart) ...[
-              pw.Text(
-                'Trend',
-                style: pw.TextStyle(
-                  fontSize: 11,
-                  fontWeight: pw.FontWeight.bold,
-                ),
+            pw.Text(
+              'Trend',
+              style: pw.TextStyle(
+                fontSize: 11,
+                fontWeight: pw.FontWeight.bold,
               ),
-              pw.SizedBox(height: 4),
-              buildTrendChart(sorted, from: from, to: to, height: 200),
-              pw.SizedBox(height: 12),
-            ],
+            ),
+            pw.SizedBox(height: 4),
+            buildTrendChart(sorted, from: from, to: to, height: 200),
+            pw.SizedBox(height: 12),
             _morningEveningSummary(sorted),
           ],
         ),
@@ -169,7 +178,7 @@ class PdfReportService implements IReportExportService {
               color: PdfColors.white,
             ),
             headerDecoration:
-                const pw.BoxDecoration(color: PdfColors.blueGrey700),
+                const pw.BoxDecoration(color: _accent),
             cellStyle: const pw.TextStyle(fontSize: 8.5),
             cellAlignments: const {
               0: pw.Alignment.centerLeft,

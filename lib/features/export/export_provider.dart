@@ -12,7 +12,6 @@ class ExportOptions {
   final DateTime to;
   final bool includeScanned;
   final bool includeManual;
-  final bool includeCharts;
 
   const ExportOptions({
     required this.preset,
@@ -20,7 +19,6 @@ class ExportOptions {
     required this.to,
     required this.includeScanned,
     required this.includeManual,
-    required this.includeCharts,
   });
 
   static ExportOptions defaults() {
@@ -31,7 +29,6 @@ class ExportOptions {
       to: now,
       includeScanned: true,
       includeManual: true,
-      includeCharts: true,
     );
   }
 
@@ -41,7 +38,6 @@ class ExportOptions {
     DateTime? to,
     bool? includeScanned,
     bool? includeManual,
-    bool? includeCharts,
   }) {
     return ExportOptions(
       preset: preset ?? this.preset,
@@ -49,7 +45,6 @@ class ExportOptions {
       to: to ?? this.to,
       includeScanned: includeScanned ?? this.includeScanned,
       includeManual: includeManual ?? this.includeManual,
-      includeCharts: includeCharts ?? this.includeCharts,
     );
   }
 }
@@ -89,16 +84,13 @@ class ExportOptionsNotifier extends Notifier<ExportOptions> {
       state = state.copyWith(includeScanned: v);
   void setIncludeManual(bool v) =>
       state = state.copyWith(includeManual: v);
-  void setIncludeCharts(bool v) =>
-      state = state.copyWith(includeCharts: v);
 }
 
 final exportOptionsProvider =
     NotifierProvider<ExportOptionsNotifier, ExportOptions>(
         ExportOptionsNotifier.new);
 
-/// Factory: returns a fresh PdfReportService respecting current includeCharts.
+/// Factory: returns a PdfReportService. Charts are always included.
 final reportExportServiceProvider = Provider<IReportExportService>((ref) {
-  final opts = ref.watch(exportOptionsProvider);
-  return PdfReportService(includeChart: opts.includeCharts);
+  return PdfReportService();
 });

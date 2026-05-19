@@ -1,11 +1,10 @@
-import 'package:flutter/foundation.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:package_info_plus/package_info_plus.dart';
+import 'package:url_launcher/url_launcher.dart';
 
-import '../../data/database/app_database.dart';
-import '../../domain/models/scan_result.dart';
-import '../../providers.dart';
 import 'settings_provider.dart';
 import 'widgets/health_platform_tile.dart';
 
@@ -36,45 +35,38 @@ class SettingsScreen extends ConsumerWidget {
           ),
           const HealthPlatformTile(),
           const Divider(),
-          const ListTile(
-            leading: Icon(Icons.info_outline),
-            title: Text('About'),
-            subtitle: Text('PulseSnap MVP — v1.0.0'),
-          ),
+          const _AboutTile(),
           const Divider(),
-          if (kDebugMode)
-            ListTile(
-              leading: const Icon(Icons.science),
-              title: const Text('Insert 30 demo readings (debug)'),
-              subtitle: const Text(
-                  'Populates the local DB with fake history. Not OCR training data.'),
-              onTap: () async {
-                final repo = ref.read(readingRepositoryProvider);
-                final now = DateTime.now();
-                for (var i = 0; i < 30; i++) {
-                  final at = now.subtract(Duration(days: i));
-                  await repo.saveReading(Reading(
-                    id: 0,
-                    userId: 'default',
-                    measuredAt: at,
-                    sourceType: ScannerType.mlKit,
-                    systolic: 110 + (i % 6) * 5,
-                    diastolic: 70 + (i % 5) * 4,
-                    pulse: 65 + (i % 7) * 3,
-                    ocrConfidence: 0.9,
-                    isManuallyEdited: false,
-                    createdAt: at,
-                  ));
-                }
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Seeded 30 readings')),
-                  );
-                }
-              },
-            ),
         ],
       ),
+    );
+  }
+}
+
+class _AboutTile extends StatefulWidget {
+  const _AboutTile();
+
+  @override
+  State<_AboutTile> createState() => _AboutTileState();
+}
+
+class _AboutTileState extends State<_AboutTile> {
+  late final Future<PackageInfo> _info = PackageInfo.fromPlatform();
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<PackageInfo>(
+      future: _info,
+      builder: (context, snap) {
+        final version = snap.data?.version ?? '';
+        final subtitle =
+            version.isEmpty ? 'PulseSnap' : 'PulseSnap — v$version';
+        return ListTile(
+          leading: const Icon(Icons.info_outline),
+          title: const Text('About'),
+          subtitle: Text(subtitle),
+        );
+      },
     );
   }
 }
@@ -89,12 +81,23 @@ class _GeminiApiKeyTile extends ConsumerStatefulWidget {
 class _GeminiApiKeyTileState extends ConsumerState<_GeminiApiKeyTile> {
   TextEditingController? _ctrl;
   bool _reveal = false;
+  late final TapGestureRecognizer _linkRecognizer = TapGestureRecognizer()
+    ..onTap = () => launchUrl(
+          Uri.parse('https://aistudio.google.com/apikey'),
+          mode: LaunchMode.externalApplication,
+        );
 
   @override
   Widget build(BuildContext context) {
     final keyAsync = ref.watch(geminiApiKeyProvider);
     final current = keyAsync.maybeWhen(data: (k) => k, orElse: () => '');
     _ctrl ??= TextEditingController(text: current);
+    final theme = Theme.of(context);
+    final bodySmall = theme.textTheme.bodySmall;
+    final linkStyle = bodySmall?.copyWith(
+      color: theme.colorScheme.primary,
+      decoration: TextDecoration.underline,
+    );
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
@@ -102,13 +105,25 @@ class _GeminiApiKeyTileState extends ConsumerState<_GeminiApiKeyTile> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text('Gemini Flash API key',
-              style: Theme.of(context).textTheme.titleMedium),
+              style: theme.textTheme.titleMedium),
           const SizedBox(height: 4),
-          Text(
-            'Get one free at aistudio.google.com/apikey. When set, BP '
-            'readings are extracted via Gemini Flash instead of on-device '
-            'OCR. The photo is uploaded to Google for that single request.',
-            style: Theme.of(context).textTheme.bodySmall,
+          Text.rich(
+            TextSpan(
+              style: bodySmall,
+              children: [
+                const TextSpan(text: 'Get one free at '),
+                TextSpan(
+                  text: 'aistudio.google.com/apikey',
+                  style: linkStyle,
+                  recognizer: _linkRecognizer,
+                ),
+                const TextSpan(
+                  text: '. When set, BP readings are extracted via Gemini '
+                      'Flash instead of on-device OCR. The photo is uploaded '
+                      'to Google for that single request.',
+                ),
+              ],
+            ),
           ),
           const SizedBox(height: 12),
           TextField(
@@ -164,6 +179,7 @@ class _GeminiApiKeyTileState extends ConsumerState<_GeminiApiKeyTile> {
   @override
   void dispose() {
     _ctrl?.dispose();
+    _linkRecognizer.dispose();
     super.dispose();
   }
 }
