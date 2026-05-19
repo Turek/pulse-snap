@@ -10,6 +10,7 @@ import 'core/theme/app_theme.dart';
 import 'features/camera/camera_screen.dart';
 import 'features/dashboard/dashboard_screen.dart';
 import 'features/detail/reading_detail_screen.dart';
+import 'features/export/export_screen.dart';
 import 'features/history/history_screen.dart';
 import 'features/review/review_screen.dart';
 import 'features/settings/settings_provider.dart';
@@ -67,6 +68,11 @@ final _router = GoRouter(
       builder: (context, state) => ReadingDetailScreen(
         readingId: int.parse(state.pathParameters['id']!),
       ),
+    ),
+    GoRoute(
+      path: '/export',
+      name: 'export',
+      builder: (context, state) => const ExportScreen(),
     ),
   ],
 );
