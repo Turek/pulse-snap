@@ -501,8 +501,8 @@ The following changes should be applied to the original specification:
 
 ## Recommended implementation order
 
-1. Threshold engine, enums, tokens, and status UI.
-2. Tags model, tag chips, tag filtering, migration away from notes.
-3. PDF export service and export screens.
-4. Apple Health and Health Connect write-only sync.
-5. Import sync and deduplication.
+1. Threshold engine, enums, tokens, and status UI. ✅ Shipped 1.0.1
+2. Tags model, tag chips, tag filtering, migration away from notes. ✅ Shipped 1.0.2
+3. PDF export service and export screens. ✅ Shipped 1.0.3
+4. Apple Health and Health Connect write-only sync. ✅ Shipped 1.0.4
+5. Import sync and deduplication. ⏳ Deferred to 1.2.x

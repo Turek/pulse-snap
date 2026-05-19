@@ -13,6 +13,7 @@ import '../../core/widgets/tinted_card.dart';
 import '../../data/database/app_database.dart';
 import '../../domain/health/blood_pressure_status.dart';
 import '../../domain/health/heart_rate_status.dart';
+import '../../domain/health/reading_advisory.dart';
 import '../../domain/health/severity_level.dart';
 import '../../domain/health/vital_classifiers.dart';
 import '../../domain/models/scan_result.dart';
@@ -183,6 +184,11 @@ class _BodyState extends ConsumerState<_Body> {
         pulse != null ? classifyHeartRate(bpm: pulse) : null;
     final accent =
         bpStatus == null ? SectionAccent.sky : bpStatusColor(bpStatus);
+    final advisory = computeAdvisory(
+      bp: bpStatus,
+      hr: hrStatus,
+      tags: _tags,
+    );
     // While editing, the row will be saved as manual regardless of where
     // it came from.
     final effectiveSource =
@@ -255,6 +261,24 @@ class _BodyState extends ConsumerState<_Body> {
                     hrStatus: hrStatus,
                   ),
           ),
+          if (advisory.bpSubtitle != null) ...[
+            const SizedBox(height: 10),
+            Text(
+              advisory.bpSubtitle!,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: scheme.onSurfaceVariant,
+              ),
+            ),
+          ],
+          if (advisory.hrSubtitle != null) ...[
+            const SizedBox(height: 6),
+            Text(
+              advisory.hrSubtitle!,
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: scheme.onSurfaceVariant,
+              ),
+            ),
+          ],
           const SizedBox(height: 24),
 
           // WHEN (date + time picker when editing, static row when reading)
