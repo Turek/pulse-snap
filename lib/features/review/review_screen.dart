@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../core/utils/bp_category.dart';
+import '../../core/widgets/action_bar.dart';
 import '../../core/widgets/back_or_home_button.dart';
 import '../../core/widgets/gemini_key_action.dart';
 import '../../data/database/app_database.dart';
@@ -179,42 +180,29 @@ class ReviewFormState extends ConsumerState<ReviewForm> {
         title: const Text('Review Reading'),
         actions: const [GeminiKeyAction()],
       ),
-      bottomNavigationBar: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
-          child: Row(
-            children: [
-              Expanded(
-                child: OutlinedButton(
-                  onPressed: _saving
-                      ? null
-                      : () {
-                          if (context.canPop()) {
-                            context.pop();
-                          } else {
-                            context.go('/scan');
-                          }
-                        },
-                  child: const Text('Retake'),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                flex: 2,
-                child: FilledButton(
-                  onPressed: _canSave && !_saving ? _save : null,
-                  child: _saving
-                      ? const SizedBox(
-                          width: 16,
-                          height: 16,
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        )
-                      : const Text('Save Reading'),
-                ),
-              ),
-            ],
+      bottomNavigationBar: ActionBar(
+        children: [
+          ActionButton.tonal(
+            onPressed: _saving
+                ? null
+                : () {
+                    if (context.canPop()) {
+                      context.pop();
+                    } else {
+                      context.go('/scan');
+                    }
+                  },
+            icon: Icons.replay,
+            label: 'Retake',
           ),
-        ),
+          const SizedBox(width: 12),
+          ActionButton.primary(
+            onPressed: _canSave && !_saving ? _save : null,
+            icon: _saving ? Icons.hourglass_top : Icons.check,
+            label: _saving ? 'Saving…' : 'Save reading',
+            flex: 2,
+          ),
+        ],
       ),
       body: SafeArea(
         child: SingleChildScrollView(

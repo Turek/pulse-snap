@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import '../../core/utils/bp_category.dart';
+import '../../core/widgets/action_bar.dart';
 import '../../core/widgets/back_or_home_button.dart';
 import '../../core/widgets/tinted_card.dart';
 import '../../data/database/app_database.dart';
@@ -181,52 +182,36 @@ class _BodyState extends ConsumerState<_Body> {
     );
 
     return Scaffold(
-      bottomNavigationBar: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
-          child: _editing
-              ? Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton(
-                        onPressed: _cancelEdit,
-                        child: const Text('Cancel'),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      flex: 2,
-                      child: FilledButton(
-                        onPressed: _save,
-                        child: const Text('Save changes'),
-                      ),
-                    ),
-                  ],
-                )
-              : Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton.icon(
-                        onPressed: _delete,
-                        icon: const Icon(Icons.delete_outline),
-                        label: const Text('Delete'),
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: scheme.error,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      flex: 2,
-                      child: FilledButton.icon(
-                        onPressed: () => setState(() => _editing = true),
-                        icon: const Icon(Icons.edit_outlined),
-                        label: const Text('Edit'),
-                      ),
-                    ),
-                  ],
+      bottomNavigationBar: ActionBar(
+        children: _editing
+            ? [
+                ActionButton.tonal(
+                  onPressed: _cancelEdit,
+                  icon: Icons.close,
+                  label: 'Cancel',
                 ),
-        ),
+                const SizedBox(width: 12),
+                ActionButton.primary(
+                  onPressed: _save,
+                  icon: Icons.check,
+                  label: 'Save changes',
+                  flex: 2,
+                ),
+              ]
+            : [
+                ActionButton.danger(
+                  onPressed: _delete,
+                  icon: Icons.delete_outline,
+                  label: 'Delete',
+                ),
+                const SizedBox(width: 12),
+                ActionButton.primary(
+                  onPressed: () => setState(() => _editing = true),
+                  icon: Icons.edit_outlined,
+                  label: 'Edit',
+                  flex: 2,
+                ),
+              ],
       ),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
