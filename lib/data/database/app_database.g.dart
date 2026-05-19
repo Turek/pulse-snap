@@ -1026,16 +1026,429 @@ class ReadingTagsCompanion extends UpdateCompanion<ReadingTag> {
   }
 }
 
+class $ExternalSyncRecordsTable extends ExternalSyncRecords
+    with TableInfo<$ExternalSyncRecordsTable, ExternalSyncRecordRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $ExternalSyncRecordsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _readingIdMeta = const VerificationMeta(
+    'readingId',
+  );
+  @override
+  late final GeneratedColumn<int> readingId = GeneratedColumn<int>(
+    'reading_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES readings (id)',
+    ),
+  );
+  static const VerificationMeta _sourceTypeMeta = const VerificationMeta(
+    'sourceType',
+  );
+  @override
+  late final GeneratedColumn<String> sourceType = GeneratedColumn<String>(
+    'source_type',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _externalIdMeta = const VerificationMeta(
+    'externalId',
+  );
+  @override
+  late final GeneratedColumn<String> externalId = GeneratedColumn<String>(
+    'external_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _syncedAtMeta = const VerificationMeta(
+    'syncedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> syncedAt = GeneratedColumn<DateTime>(
+    'synced_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  static const VerificationMeta _platformMeta = const VerificationMeta(
+    'platform',
+  );
+  @override
+  late final GeneratedColumn<String> platform = GeneratedColumn<String>(
+    'platform',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    readingId,
+    sourceType,
+    externalId,
+    syncedAt,
+    platform,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'external_sync_records';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<ExternalSyncRecordRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('reading_id')) {
+      context.handle(
+        _readingIdMeta,
+        readingId.isAcceptableOrUnknown(data['reading_id']!, _readingIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_readingIdMeta);
+    }
+    if (data.containsKey('source_type')) {
+      context.handle(
+        _sourceTypeMeta,
+        sourceType.isAcceptableOrUnknown(data['source_type']!, _sourceTypeMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_sourceTypeMeta);
+    }
+    if (data.containsKey('external_id')) {
+      context.handle(
+        _externalIdMeta,
+        externalId.isAcceptableOrUnknown(data['external_id']!, _externalIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_externalIdMeta);
+    }
+    if (data.containsKey('synced_at')) {
+      context.handle(
+        _syncedAtMeta,
+        syncedAt.isAcceptableOrUnknown(data['synced_at']!, _syncedAtMeta),
+      );
+    }
+    if (data.containsKey('platform')) {
+      context.handle(
+        _platformMeta,
+        platform.isAcceptableOrUnknown(data['platform']!, _platformMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_platformMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  ExternalSyncRecordRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return ExternalSyncRecordRow(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      readingId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}reading_id'],
+      )!,
+      sourceType: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}source_type'],
+      )!,
+      externalId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}external_id'],
+      )!,
+      syncedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}synced_at'],
+      )!,
+      platform: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}platform'],
+      )!,
+    );
+  }
+
+  @override
+  $ExternalSyncRecordsTable createAlias(String alias) {
+    return $ExternalSyncRecordsTable(attachedDatabase, alias);
+  }
+}
+
+class ExternalSyncRecordRow extends DataClass
+    implements Insertable<ExternalSyncRecordRow> {
+  final int id;
+  final int readingId;
+  final String sourceType;
+  final String externalId;
+  final DateTime syncedAt;
+  final String platform;
+  const ExternalSyncRecordRow({
+    required this.id,
+    required this.readingId,
+    required this.sourceType,
+    required this.externalId,
+    required this.syncedAt,
+    required this.platform,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['reading_id'] = Variable<int>(readingId);
+    map['source_type'] = Variable<String>(sourceType);
+    map['external_id'] = Variable<String>(externalId);
+    map['synced_at'] = Variable<DateTime>(syncedAt);
+    map['platform'] = Variable<String>(platform);
+    return map;
+  }
+
+  ExternalSyncRecordsCompanion toCompanion(bool nullToAbsent) {
+    return ExternalSyncRecordsCompanion(
+      id: Value(id),
+      readingId: Value(readingId),
+      sourceType: Value(sourceType),
+      externalId: Value(externalId),
+      syncedAt: Value(syncedAt),
+      platform: Value(platform),
+    );
+  }
+
+  factory ExternalSyncRecordRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return ExternalSyncRecordRow(
+      id: serializer.fromJson<int>(json['id']),
+      readingId: serializer.fromJson<int>(json['readingId']),
+      sourceType: serializer.fromJson<String>(json['sourceType']),
+      externalId: serializer.fromJson<String>(json['externalId']),
+      syncedAt: serializer.fromJson<DateTime>(json['syncedAt']),
+      platform: serializer.fromJson<String>(json['platform']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'readingId': serializer.toJson<int>(readingId),
+      'sourceType': serializer.toJson<String>(sourceType),
+      'externalId': serializer.toJson<String>(externalId),
+      'syncedAt': serializer.toJson<DateTime>(syncedAt),
+      'platform': serializer.toJson<String>(platform),
+    };
+  }
+
+  ExternalSyncRecordRow copyWith({
+    int? id,
+    int? readingId,
+    String? sourceType,
+    String? externalId,
+    DateTime? syncedAt,
+    String? platform,
+  }) => ExternalSyncRecordRow(
+    id: id ?? this.id,
+    readingId: readingId ?? this.readingId,
+    sourceType: sourceType ?? this.sourceType,
+    externalId: externalId ?? this.externalId,
+    syncedAt: syncedAt ?? this.syncedAt,
+    platform: platform ?? this.platform,
+  );
+  ExternalSyncRecordRow copyWithCompanion(ExternalSyncRecordsCompanion data) {
+    return ExternalSyncRecordRow(
+      id: data.id.present ? data.id.value : this.id,
+      readingId: data.readingId.present ? data.readingId.value : this.readingId,
+      sourceType: data.sourceType.present
+          ? data.sourceType.value
+          : this.sourceType,
+      externalId: data.externalId.present
+          ? data.externalId.value
+          : this.externalId,
+      syncedAt: data.syncedAt.present ? data.syncedAt.value : this.syncedAt,
+      platform: data.platform.present ? data.platform.value : this.platform,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ExternalSyncRecordRow(')
+          ..write('id: $id, ')
+          ..write('readingId: $readingId, ')
+          ..write('sourceType: $sourceType, ')
+          ..write('externalId: $externalId, ')
+          ..write('syncedAt: $syncedAt, ')
+          ..write('platform: $platform')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(id, readingId, sourceType, externalId, syncedAt, platform);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is ExternalSyncRecordRow &&
+          other.id == this.id &&
+          other.readingId == this.readingId &&
+          other.sourceType == this.sourceType &&
+          other.externalId == this.externalId &&
+          other.syncedAt == this.syncedAt &&
+          other.platform == this.platform);
+}
+
+class ExternalSyncRecordsCompanion
+    extends UpdateCompanion<ExternalSyncRecordRow> {
+  final Value<int> id;
+  final Value<int> readingId;
+  final Value<String> sourceType;
+  final Value<String> externalId;
+  final Value<DateTime> syncedAt;
+  final Value<String> platform;
+  const ExternalSyncRecordsCompanion({
+    this.id = const Value.absent(),
+    this.readingId = const Value.absent(),
+    this.sourceType = const Value.absent(),
+    this.externalId = const Value.absent(),
+    this.syncedAt = const Value.absent(),
+    this.platform = const Value.absent(),
+  });
+  ExternalSyncRecordsCompanion.insert({
+    this.id = const Value.absent(),
+    required int readingId,
+    required String sourceType,
+    required String externalId,
+    this.syncedAt = const Value.absent(),
+    required String platform,
+  }) : readingId = Value(readingId),
+       sourceType = Value(sourceType),
+       externalId = Value(externalId),
+       platform = Value(platform);
+  static Insertable<ExternalSyncRecordRow> custom({
+    Expression<int>? id,
+    Expression<int>? readingId,
+    Expression<String>? sourceType,
+    Expression<String>? externalId,
+    Expression<DateTime>? syncedAt,
+    Expression<String>? platform,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (readingId != null) 'reading_id': readingId,
+      if (sourceType != null) 'source_type': sourceType,
+      if (externalId != null) 'external_id': externalId,
+      if (syncedAt != null) 'synced_at': syncedAt,
+      if (platform != null) 'platform': platform,
+    });
+  }
+
+  ExternalSyncRecordsCompanion copyWith({
+    Value<int>? id,
+    Value<int>? readingId,
+    Value<String>? sourceType,
+    Value<String>? externalId,
+    Value<DateTime>? syncedAt,
+    Value<String>? platform,
+  }) {
+    return ExternalSyncRecordsCompanion(
+      id: id ?? this.id,
+      readingId: readingId ?? this.readingId,
+      sourceType: sourceType ?? this.sourceType,
+      externalId: externalId ?? this.externalId,
+      syncedAt: syncedAt ?? this.syncedAt,
+      platform: platform ?? this.platform,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (readingId.present) {
+      map['reading_id'] = Variable<int>(readingId.value);
+    }
+    if (sourceType.present) {
+      map['source_type'] = Variable<String>(sourceType.value);
+    }
+    if (externalId.present) {
+      map['external_id'] = Variable<String>(externalId.value);
+    }
+    if (syncedAt.present) {
+      map['synced_at'] = Variable<DateTime>(syncedAt.value);
+    }
+    if (platform.present) {
+      map['platform'] = Variable<String>(platform.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ExternalSyncRecordsCompanion(')
+          ..write('id: $id, ')
+          ..write('readingId: $readingId, ')
+          ..write('sourceType: $sourceType, ')
+          ..write('externalId: $externalId, ')
+          ..write('syncedAt: $syncedAt, ')
+          ..write('platform: $platform')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
   late final $ReadingsTable readings = $ReadingsTable(this);
   late final $ReadingTagsTable readingTags = $ReadingTagsTable(this);
+  late final $ExternalSyncRecordsTable externalSyncRecords =
+      $ExternalSyncRecordsTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
   @override
-  List<DatabaseSchemaEntity> get allSchemaEntities => [readings, readingTags];
+  List<DatabaseSchemaEntity> get allSchemaEntities => [
+    readings,
+    readingTags,
+    externalSyncRecords,
+  ];
 }
 
 typedef $$ReadingsTableCreateCompanionBuilder =
@@ -1066,6 +1479,38 @@ typedef $$ReadingsTableUpdateCompanionBuilder =
       Value<bool> isManuallyEdited,
       Value<DateTime> createdAt,
     });
+
+final class $$ReadingsTableReferences
+    extends BaseReferences<_$AppDatabase, $ReadingsTable, Reading> {
+  $$ReadingsTableReferences(super.$_db, super.$_table, super.$_typedResult);
+
+  static MultiTypedResultKey<
+    $ExternalSyncRecordsTable,
+    List<ExternalSyncRecordRow>
+  >
+  _externalSyncRecordsRefsTable(_$AppDatabase db) =>
+      MultiTypedResultKey.fromTable(
+        db.externalSyncRecords,
+        aliasName: $_aliasNameGenerator(
+          db.readings.id,
+          db.externalSyncRecords.readingId,
+        ),
+      );
+
+  $$ExternalSyncRecordsTableProcessedTableManager get externalSyncRecordsRefs {
+    final manager = $$ExternalSyncRecordsTableTableManager(
+      $_db,
+      $_db.externalSyncRecords,
+    ).filter((f) => f.readingId.id.sqlEquals($_itemColumn<int>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(
+      _externalSyncRecordsRefsTable($_db),
+    );
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+}
 
 class $$ReadingsTableFilterComposer
     extends Composer<_$AppDatabase, $ReadingsTable> {
@@ -1131,6 +1576,31 @@ class $$ReadingsTableFilterComposer
     column: $table.createdAt,
     builder: (column) => ColumnFilters(column),
   );
+
+  Expression<bool> externalSyncRecordsRefs(
+    Expression<bool> Function($$ExternalSyncRecordsTableFilterComposer f) f,
+  ) {
+    final $$ExternalSyncRecordsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.externalSyncRecords,
+      getReferencedColumn: (t) => t.readingId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ExternalSyncRecordsTableFilterComposer(
+            $db: $db,
+            $table: $db.externalSyncRecords,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
 }
 
 class $$ReadingsTableOrderingComposer
@@ -1250,6 +1720,32 @@ class $$ReadingsTableAnnotationComposer
 
   GeneratedColumn<DateTime> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  Expression<T> externalSyncRecordsRefs<T extends Object>(
+    Expression<T> Function($$ExternalSyncRecordsTableAnnotationComposer a) f,
+  ) {
+    final $$ExternalSyncRecordsTableAnnotationComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.id,
+          referencedTable: $db.externalSyncRecords,
+          getReferencedColumn: (t) => t.readingId,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$ExternalSyncRecordsTableAnnotationComposer(
+                $db: $db,
+                $table: $db.externalSyncRecords,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return f(composer);
+  }
 }
 
 class $$ReadingsTableTableManager
@@ -1263,9 +1759,9 @@ class $$ReadingsTableTableManager
           $$ReadingsTableAnnotationComposer,
           $$ReadingsTableCreateCompanionBuilder,
           $$ReadingsTableUpdateCompanionBuilder,
-          (Reading, BaseReferences<_$AppDatabase, $ReadingsTable, Reading>),
+          (Reading, $$ReadingsTableReferences),
           Reading,
-          PrefetchHooks Function()
+          PrefetchHooks Function({bool externalSyncRecordsRefs})
         > {
   $$ReadingsTableTableManager(_$AppDatabase db, $ReadingsTable table)
     : super(
@@ -1331,9 +1827,44 @@ class $$ReadingsTableTableManager
                 createdAt: createdAt,
               ),
           withReferenceMapper: (p0) => p0
-              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$ReadingsTableReferences(db, table, e),
+                ),
+              )
               .toList(),
-          prefetchHooksCallback: null,
+          prefetchHooksCallback: ({externalSyncRecordsRefs = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [
+                if (externalSyncRecordsRefs) db.externalSyncRecords,
+              ],
+              addJoins: null,
+              getPrefetchedDataCallback: (items) async {
+                return [
+                  if (externalSyncRecordsRefs)
+                    await $_getPrefetchedData<
+                      Reading,
+                      $ReadingsTable,
+                      ExternalSyncRecordRow
+                    >(
+                      currentTable: table,
+                      referencedTable: $$ReadingsTableReferences
+                          ._externalSyncRecordsRefsTable(db),
+                      managerFromTypedResult: (p0) => $$ReadingsTableReferences(
+                        db,
+                        table,
+                        p0,
+                      ).externalSyncRecordsRefs,
+                      referencedItemsForCurrentItem: (item, referencedItems) =>
+                          referencedItems.where((e) => e.readingId == item.id),
+                      typedResults: items,
+                    ),
+                ];
+              },
+            );
+          },
         ),
       );
 }
@@ -1348,9 +1879,9 @@ typedef $$ReadingsTableProcessedTableManager =
       $$ReadingsTableAnnotationComposer,
       $$ReadingsTableCreateCompanionBuilder,
       $$ReadingsTableUpdateCompanionBuilder,
-      (Reading, BaseReferences<_$AppDatabase, $ReadingsTable, Reading>),
+      (Reading, $$ReadingsTableReferences),
       Reading,
-      PrefetchHooks Function()
+      PrefetchHooks Function({bool externalSyncRecordsRefs})
     >;
 typedef $$ReadingTagsTableCreateCompanionBuilder =
     ReadingTagsCompanion Function({
@@ -1548,6 +2079,361 @@ typedef $$ReadingTagsTableProcessedTableManager =
       ReadingTag,
       PrefetchHooks Function()
     >;
+typedef $$ExternalSyncRecordsTableCreateCompanionBuilder =
+    ExternalSyncRecordsCompanion Function({
+      Value<int> id,
+      required int readingId,
+      required String sourceType,
+      required String externalId,
+      Value<DateTime> syncedAt,
+      required String platform,
+    });
+typedef $$ExternalSyncRecordsTableUpdateCompanionBuilder =
+    ExternalSyncRecordsCompanion Function({
+      Value<int> id,
+      Value<int> readingId,
+      Value<String> sourceType,
+      Value<String> externalId,
+      Value<DateTime> syncedAt,
+      Value<String> platform,
+    });
+
+final class $$ExternalSyncRecordsTableReferences
+    extends
+        BaseReferences<
+          _$AppDatabase,
+          $ExternalSyncRecordsTable,
+          ExternalSyncRecordRow
+        > {
+  $$ExternalSyncRecordsTableReferences(
+    super.$_db,
+    super.$_table,
+    super.$_typedResult,
+  );
+
+  static $ReadingsTable _readingIdTable(_$AppDatabase db) =>
+      db.readings.createAlias(
+        $_aliasNameGenerator(db.externalSyncRecords.readingId, db.readings.id),
+      );
+
+  $$ReadingsTableProcessedTableManager get readingId {
+    final $_column = $_itemColumn<int>('reading_id')!;
+
+    final manager = $$ReadingsTableTableManager(
+      $_db,
+      $_db.readings,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_readingIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+}
+
+class $$ExternalSyncRecordsTableFilterComposer
+    extends Composer<_$AppDatabase, $ExternalSyncRecordsTable> {
+  $$ExternalSyncRecordsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get sourceType => $composableBuilder(
+    column: $table.sourceType,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get externalId => $composableBuilder(
+    column: $table.externalId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get syncedAt => $composableBuilder(
+    column: $table.syncedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get platform => $composableBuilder(
+    column: $table.platform,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $$ReadingsTableFilterComposer get readingId {
+    final $$ReadingsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.readingId,
+      referencedTable: $db.readings,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ReadingsTableFilterComposer(
+            $db: $db,
+            $table: $db.readings,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$ExternalSyncRecordsTableOrderingComposer
+    extends Composer<_$AppDatabase, $ExternalSyncRecordsTable> {
+  $$ExternalSyncRecordsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get sourceType => $composableBuilder(
+    column: $table.sourceType,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get externalId => $composableBuilder(
+    column: $table.externalId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get syncedAt => $composableBuilder(
+    column: $table.syncedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get platform => $composableBuilder(
+    column: $table.platform,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $$ReadingsTableOrderingComposer get readingId {
+    final $$ReadingsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.readingId,
+      referencedTable: $db.readings,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ReadingsTableOrderingComposer(
+            $db: $db,
+            $table: $db.readings,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$ExternalSyncRecordsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $ExternalSyncRecordsTable> {
+  $$ExternalSyncRecordsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get sourceType => $composableBuilder(
+    column: $table.sourceType,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get externalId => $composableBuilder(
+    column: $table.externalId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get syncedAt =>
+      $composableBuilder(column: $table.syncedAt, builder: (column) => column);
+
+  GeneratedColumn<String> get platform =>
+      $composableBuilder(column: $table.platform, builder: (column) => column);
+
+  $$ReadingsTableAnnotationComposer get readingId {
+    final $$ReadingsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.readingId,
+      referencedTable: $db.readings,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ReadingsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.readings,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$ExternalSyncRecordsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $ExternalSyncRecordsTable,
+          ExternalSyncRecordRow,
+          $$ExternalSyncRecordsTableFilterComposer,
+          $$ExternalSyncRecordsTableOrderingComposer,
+          $$ExternalSyncRecordsTableAnnotationComposer,
+          $$ExternalSyncRecordsTableCreateCompanionBuilder,
+          $$ExternalSyncRecordsTableUpdateCompanionBuilder,
+          (ExternalSyncRecordRow, $$ExternalSyncRecordsTableReferences),
+          ExternalSyncRecordRow,
+          PrefetchHooks Function({bool readingId})
+        > {
+  $$ExternalSyncRecordsTableTableManager(
+    _$AppDatabase db,
+    $ExternalSyncRecordsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$ExternalSyncRecordsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$ExternalSyncRecordsTableOrderingComposer(
+                $db: db,
+                $table: table,
+              ),
+          createComputedFieldComposer: () =>
+              $$ExternalSyncRecordsTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<int> readingId = const Value.absent(),
+                Value<String> sourceType = const Value.absent(),
+                Value<String> externalId = const Value.absent(),
+                Value<DateTime> syncedAt = const Value.absent(),
+                Value<String> platform = const Value.absent(),
+              }) => ExternalSyncRecordsCompanion(
+                id: id,
+                readingId: readingId,
+                sourceType: sourceType,
+                externalId: externalId,
+                syncedAt: syncedAt,
+                platform: platform,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required int readingId,
+                required String sourceType,
+                required String externalId,
+                Value<DateTime> syncedAt = const Value.absent(),
+                required String platform,
+              }) => ExternalSyncRecordsCompanion.insert(
+                id: id,
+                readingId: readingId,
+                sourceType: sourceType,
+                externalId: externalId,
+                syncedAt: syncedAt,
+                platform: platform,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$ExternalSyncRecordsTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: ({readingId = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [],
+              addJoins:
+                  <
+                    T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic
+                    >
+                  >(state) {
+                    if (readingId) {
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.readingId,
+                                referencedTable:
+                                    $$ExternalSyncRecordsTableReferences
+                                        ._readingIdTable(db),
+                                referencedColumn:
+                                    $$ExternalSyncRecordsTableReferences
+                                        ._readingIdTable(db)
+                                        .id,
+                              )
+                              as T;
+                    }
+
+                    return state;
+                  },
+              getPrefetchedDataCallback: (items) async {
+                return [];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$ExternalSyncRecordsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $ExternalSyncRecordsTable,
+      ExternalSyncRecordRow,
+      $$ExternalSyncRecordsTableFilterComposer,
+      $$ExternalSyncRecordsTableOrderingComposer,
+      $$ExternalSyncRecordsTableAnnotationComposer,
+      $$ExternalSyncRecordsTableCreateCompanionBuilder,
+      $$ExternalSyncRecordsTableUpdateCompanionBuilder,
+      (ExternalSyncRecordRow, $$ExternalSyncRecordsTableReferences),
+      ExternalSyncRecordRow,
+      PrefetchHooks Function({bool readingId})
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -1556,4 +2442,6 @@ class $AppDatabaseManager {
       $$ReadingsTableTableManager(_db, _db.readings);
   $$ReadingTagsTableTableManager get readingTags =>
       $$ReadingTagsTableTableManager(_db, _db.readingTags);
+  $$ExternalSyncRecordsTableTableManager get externalSyncRecords =>
+      $$ExternalSyncRecordsTableTableManager(_db, _db.externalSyncRecords);
 }

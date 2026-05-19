@@ -53,6 +53,10 @@
 		<string>PulseSnap needs camera access to photograph your blood pressure monitor.</string>
 		<key>NSPhotoLibraryUsageDescription</key>
 		<string>PulseSnap can import photos of your blood pressure monitor readings.</string>
+		<key>NSHealthShareUsageDescription</key>
+		<string>PulseSnap reads blood pressure and pulse you've already saved in Apple Health so you can review them alongside readings captured here.</string>
+		<key>NSHealthUpdateUsageDescription</key>
+		<string>PulseSnap writes confirmed blood pressure and pulse readings to Apple Health so they're available to other apps you trust.</string>
 		<key>UILaunchStoryboardName</key>
 		<string>LaunchScreen</string>
 		<key>UIMainStoryboardFile</key>

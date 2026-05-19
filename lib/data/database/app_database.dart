@@ -36,13 +36,23 @@ class ReadingTags extends Table {
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
 }
 
-@DriftDatabase(tables: [Readings, ReadingTags])
+@DataClassName('ExternalSyncRecordRow')
+class ExternalSyncRecords extends Table {
+  IntColumn get id => integer().autoIncrement()();
+  IntColumn get readingId => integer().references(Readings, #id)();
+  TextColumn get sourceType => text()(); // ReadingSourceType.name
+  TextColumn get externalId => text()();
+  DateTimeColumn get syncedAt => dateTime().withDefault(currentDateAndTime)();
+  TextColumn get platform => text()(); // 'apple_health' | 'health_connect'
+}
+
+@DriftDatabase(tables: [Readings, ReadingTags, ExternalSyncRecords])
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
   AppDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -69,6 +79,9 @@ class AppDatabase extends _$AppDatabase {
             }
             await customStatement(
                 'ALTER TABLE readings DROP COLUMN notes');
+          }
+          if (from < 3 && to >= 3) {
+            await m.createTable(externalSyncRecords);
           }
         },
       );

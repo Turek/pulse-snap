@@ -1,7 +1,9 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'data/database/app_database.dart';
+import 'data/health_platform/health_plus_service.dart';
 import 'data/repositories/reading_repository.dart';
+import 'domain/health_platform/health_platform_service.dart';
 import 'domain/repositories/i_reading_repository.dart';
 import 'domain/scanner/scan_orchestrator.dart';
 import 'domain/tags/reading_with_tags.dart';
@@ -12,8 +14,15 @@ final appDatabaseProvider = Provider<AppDatabase>((ref) {
   return db;
 });
 
+final healthPlatformServiceProvider = Provider<IHealthPlatformService>((ref) {
+  return HealthPlusService();
+});
+
 final readingRepositoryProvider = Provider<IReadingRepository>((ref) {
-  return ReadingRepository(ref.watch(appDatabaseProvider));
+  return ReadingRepository(
+    ref.watch(appDatabaseProvider),
+    healthPlatformService: ref.watch(healthPlatformServiceProvider),
+  );
 });
 
 final scanOrchestratorProvider = Provider<ScanOrchestrator>((ref) {
