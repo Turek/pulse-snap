@@ -1,7 +1,7 @@
 name: pulse_snap
 description: "PulseSnap — snap a BP monitor, get a reading."
 publish_to: 'none'
-version: 1.1.0+6
+version: 1.1.1+7
 
 environment:
   sdk: ^3.11.5
@@ -46,6 +46,8 @@ dependencies:
   dynamic_color: ^1.7.0
   flutter_tesseract_ocr: ^0.4.26
   google_fonts: ^6.2.1
+  package_info_plus: ^8.0.0
+  url_launcher: ^6.3.0
 
   # PDF export
   pdf: ^3.11.0

@@ -48,8 +48,8 @@ void main() {
     expect(container.read(exportOptionsProvider).preset,
         ExportRangePreset.last7Days);
 
-    // Tap the 14 days segment.
-    await tester.tap(find.text('14 days'));
+    // Tap the 14 days preset.
+    await tester.tap(find.text('Last 14 days'));
     await tester.pumpAndSettle();
 
     final updated = container.read(exportOptionsProvider);
@@ -130,7 +130,6 @@ void main() {
       to: base.add(const Duration(days: 3)),
       includeScanned: true,
       includeManual: false,
-      includeCharts: true,
     );
     final filtered = filterReadings(all, opts);
     expect(filtered.map((r) => r.reading.id), [1]);

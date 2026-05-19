@@ -97,9 +97,9 @@ void main() {
     );
     await tester.pump();
 
-    // Tap the "after coffee" default chip.
-    await tester.ensureVisible(find.text('after coffee'));
-    await tester.tap(find.text('after coffee'));
+    // Tap the "coffee" default chip.
+    await tester.ensureVisible(find.text('coffee'));
+    await tester.tap(find.text('coffee'));
     await tester.pump();
 
     // Open the custom input.
@@ -118,7 +118,7 @@ void main() {
     await tester.pump();
 
     expect(repo.lastSavedTags, isNotNull);
-    expect(repo.lastSavedTags, contains('after coffee'));
+    expect(repo.lastSavedTags, contains('coffee'));
     expect(repo.lastSavedTags, contains('headache + neck'));
   });
 }

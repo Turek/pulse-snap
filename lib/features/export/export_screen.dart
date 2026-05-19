@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:printing/printing.dart';
 
+import '../../core/widgets/action_bar.dart';
 import '../../domain/models/scan_result.dart';
 import '../../domain/tags/reading_with_tags.dart';
 import '../../providers.dart';
@@ -16,49 +17,93 @@ class ExportScreen extends ConsumerWidget {
     final opts = ref.watch(exportOptionsProvider);
     final readingsAsync = ref.watch(readingsProvider);
     final dateFmt = DateFormat.yMMMd();
+    final isoFmt = DateFormat('yyyy-MM-dd');
+
+    Future<void> pickCustomRange() async {
+      final now = DateTime.now();
+      final picked = await showDateRangePicker(
+        context: context,
+        firstDate: DateTime(now.year - 2),
+        lastDate: now,
+        initialDateRange: DateTimeRange(start: opts.from, end: opts.to),
+      );
+      if (picked != null) {
+        ref
+            .read(exportOptionsProvider.notifier)
+            .setCustomRange(picked.start, picked.end);
+      }
+    }
+
+    Widget presetButton({
+      required ExportRangePreset preset,
+      required String label,
+      required VoidCallback onTap,
+    }) {
+      final selected = opts.preset == preset;
+      final btn = selected
+          ? ActionButton.primary(
+              onPressed: onTap,
+              icon: _iconFor(preset),
+              label: label,
+            )
+          : ActionButton.tonal(
+              onPressed: onTap,
+              icon: _iconFor(preset),
+              label: label,
+            );
+      // ActionButton internally wraps itself in Expanded, so it must live
+      // in a Row (or Flex) parent. Keying the Row on selection forces a
+      // fresh widget subtree when intent changes, avoiding TextStyle
+      // inherit-flag lerp errors during the Material state animation.
+      return Row(
+        key: ValueKey('preset-row-$preset-$selected'),
+        children: [btn],
+      );
+    }
+
+    final customLabel = opts.preset == ExportRangePreset.custom
+        ? 'Custom: ${isoFmt.format(opts.from)} → ${isoFmt.format(opts.to)}'
+        : 'Custom range…';
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Export')),
+      appBar: AppBar(
+        title: const Text('Export'),
+        surfaceTintColor: Theme.of(context).colorScheme.primary,
+      ),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
         children: [
           Text('Date range',
               style: Theme.of(context).textTheme.titleMedium),
           const SizedBox(height: 8),
-          SegmentedButton<ExportRangePreset>(
-            segments: const [
-              ButtonSegment(
-                  value: ExportRangePreset.last7Days, label: Text('7 days')),
-              ButtonSegment(
-                  value: ExportRangePreset.last14Days, label: Text('14 days')),
-              ButtonSegment(
-                  value: ExportRangePreset.last30Days, label: Text('30 days')),
-              ButtonSegment(
-                  value: ExportRangePreset.custom, label: Text('Custom')),
-            ],
-            selected: {opts.preset},
-            onSelectionChanged: (s) async {
-              final preset = s.first;
-              if (preset == ExportRangePreset.custom) {
-                final now = DateTime.now();
-                final picked = await showDateRangePicker(
-                  context: context,
-                  firstDate: DateTime(now.year - 2),
-                  lastDate: now,
-                  initialDateRange: DateTimeRange(
-                    start: opts.from,
-                    end: opts.to,
-                  ),
-                );
-                if (picked != null) {
-                  ref
-                      .read(exportOptionsProvider.notifier)
-                      .setCustomRange(picked.start, picked.end);
-                }
-              } else {
-                ref.read(exportOptionsProvider.notifier).setPreset(preset);
-              }
-            },
+          presetButton(
+            preset: ExportRangePreset.last7Days,
+            label: 'Last 7 days',
+            onTap: () => ref
+                .read(exportOptionsProvider.notifier)
+                .setPreset(ExportRangePreset.last7Days),
+          ),
+          const SizedBox(height: 8),
+          presetButton(
+            preset: ExportRangePreset.last14Days,
+            label: 'Last 14 days',
+            onTap: () => ref
+                .read(exportOptionsProvider.notifier)
+                .setPreset(ExportRangePreset.last14Days),
+          ),
+          const SizedBox(height: 8),
+          presetButton(
+            preset: ExportRangePreset.last30Days,
+            label: 'Last 30 days',
+            onTap: () => ref
+                .read(exportOptionsProvider.notifier)
+                .setPreset(ExportRangePreset.last30Days),
+          ),
+          const SizedBox(height: 8),
+          presetButton(
+            preset: ExportRangePreset.custom,
+            label: customLabel,
+            onTap: pickCustomRange,
           ),
           const SizedBox(height: 8),
           Text(
@@ -84,18 +129,17 @@ class ExportScreen extends ConsumerWidget {
             title: const Text('Manual'),
             controlAffinity: ListTileControlAffinity.leading,
           ),
-          const SizedBox(height: 8),
-          SwitchListTile(
-            value: opts.includeCharts,
-            onChanged: (v) => ref
-                .read(exportOptionsProvider.notifier)
-                .setIncludeCharts(v),
-            title: const Text('Include charts'),
-          ),
           const SizedBox(height: 16),
           FilledButton.icon(
             icon: const Icon(Icons.picture_as_pdf),
             label: const Text('Generate preview'),
+            style: FilledButton.styleFrom(
+              backgroundColor:
+                  Theme.of(context).colorScheme.primaryContainer,
+              foregroundColor:
+                  Theme.of(context).colorScheme.onPrimaryContainer,
+              minimumSize: const Size.fromHeight(52),
+            ),
             onPressed: readingsAsync.maybeWhen(
               data: (_) => () {
                 Navigator.of(context).push(
@@ -110,6 +154,17 @@ class ExportScreen extends ConsumerWidget {
         ],
       ),
     );
+  }
+}
+
+IconData _iconFor(ExportRangePreset p) {
+  switch (p) {
+    case ExportRangePreset.last7Days:
+    case ExportRangePreset.last14Days:
+    case ExportRangePreset.last30Days:
+      return Icons.calendar_today_outlined;
+    case ExportRangePreset.custom:
+      return Icons.date_range_outlined;
   }
 }
 
