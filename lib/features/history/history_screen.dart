@@ -6,7 +6,7 @@ import 'package:intl/intl.dart';
 import 'package:table_calendar/table_calendar.dart';
 
 import '../../core/extensions/datetime_extensions.dart';
-import '../../core/utils/bp_category.dart';
+import '../../core/theme/vital_colors.dart';
 import '../../core/widgets/gemini_key_action.dart';
 import '../../core/widgets/skeleton.dart';
 import '../../core/widgets/tinted_card.dart';
@@ -186,14 +186,17 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                   calendarBuilders: CalendarBuilders<Reading>(
                     markerBuilder: (context, day, events) {
                       if (events.isEmpty) return null;
-                      final cat = worstCategoryOfDay(events);
+                      final status = worstBpStatusOfDay(events);
+                      final color = status == null
+                          ? scheme.onSurfaceVariant
+                          : bpStatusColor(status);
                       return Container(
                         margin: const EdgeInsets.only(top: 22),
                         width: 4,
                         height: 4,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          color: cat.color,
+                          color: color,
                         ),
                       );
                     },

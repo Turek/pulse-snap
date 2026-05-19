@@ -5,11 +5,16 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../core/utils/bp_category.dart';
+import '../../core/theme/vital_colors.dart';
 import '../../core/widgets/action_bar.dart';
 import '../../core/widgets/back_or_home_button.dart';
 import '../../core/widgets/gemini_key_action.dart';
+import '../../core/widgets/status_pill.dart';
 import '../../data/database/app_database.dart';
+import '../../domain/health/blood_pressure_status.dart';
+import '../../domain/health/heart_rate_status.dart';
+import '../../domain/health/severity_level.dart';
+import '../../domain/health/vital_classifiers.dart';
 import '../../domain/models/scan_result.dart';
 import '../../domain/scanner/scan_artifacts.dart';
 import '../../providers.dart';
@@ -169,10 +174,21 @@ class ReviewFormState extends ConsumerState<ReviewForm> {
   @override
   Widget build(BuildContext context) {
     final r = _current;
-    final cat = bpCategory(r.systolic, r.diastolic);
+    final bpStatus = (r.systolic != null && r.diastolic != null)
+        ? classifyBloodPressure(systolic: r.systolic!, diastolic: r.diastolic!)
+        : null;
+    final hrStatus =
+        r.pulse != null ? classifyHeartRate(bpm: r.pulse!) : null;
+    // Phase 1 placeholder — phase 2 will pipe real tags here.
+    const List<String> tags = <String>[];
     final lowConfidence = widget.initial.confidence < 0.75;
     final theme = Theme.of(context);
     final usedGemini = widget.initial.source == ScannerType.geminiFlash;
+    final hrIsElevated = hrStatus == HeartRateStatus.mildlyHigh ||
+        hrStatus == HeartRateStatus.high ||
+        hrStatus == HeartRateStatus.veryHigh;
+    final hrAfterExercise = hrIsElevated &&
+        tags.any((t) => t.toLowerCase() == 'after exercise');
 
     return Scaffold(
       appBar: AppBar(
@@ -209,6 +225,10 @@ class ReviewFormState extends ConsumerState<ReviewForm> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              if (bpStatus == BloodPressureStatus.crisis) ...[
+                _CrisisBanner(),
+                const SizedBox(height: 12),
+              ],
               ClipRRect(
                 borderRadius: BorderRadius.circular(12),
                 child: Image.file(widget.imageFile,
@@ -283,15 +303,37 @@ class ReviewFormState extends ConsumerState<ReviewForm> {
                 ],
               ),
               const SizedBox(height: 16),
-              if (cat != BpCategory.unknown)
+              if (bpStatus != null || hrStatus != null)
                 Align(
                   alignment: Alignment.centerLeft,
-                  child: Chip(
-                    label: Text(cat.label),
-                    backgroundColor: cat.color.withValues(alpha: 0.15),
-                    side: BorderSide(color: cat.color),
+                  child: Wrap(
+                    spacing: 8,
+                    runSpacing: 6,
+                    children: [
+                      if (bpStatus != null)
+                        StatusPill(
+                          label: bpStatus.label,
+                          color: bpStatusColor(bpStatus),
+                        ),
+                      if (hrStatus != null)
+                        StatusPill(
+                          label: 'Pulse · ${hrStatus.label}',
+                          color: hrStatusColor(hrStatus),
+                        ),
+                    ],
                   ),
                 ),
+              if (hrIsElevated) ...[
+                const SizedBox(height: 8),
+                Text(
+                  hrAfterExercise
+                      ? 'Elevated pulse may reflect recent activity'
+                      : 'Resting pulse is above the normal range',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
               const SizedBox(height: 16),
               TextField(
                 controller: _notes,
@@ -388,6 +430,50 @@ class _CandidateChip extends StatelessWidget {
         PopupMenuItem(value: 'pr', child: Text('Set as Pulse')),
       ],
       child: Chip(label: Text(value.toString())),
+    );
+  }
+}
+
+class _CrisisBanner extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Container(
+      padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+      decoration: BoxDecoration(
+        color: severityBackground(SeverityLevel.urgent),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: VitalColors.bpCrisis.withValues(alpha: 0.45),
+        ),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(Icons.warning_amber_rounded,
+              color: VitalColors.bpCrisis),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Hypertensive crisis range',
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    color: VitalColors.bpCrisis,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  'Values above 180/120 mmHg can be urgent. Re-measure and seek medical advice if symptoms are present.',
+                  style: theme.textTheme.bodySmall,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

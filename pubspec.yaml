@@ -1,7 +1,7 @@
 name: pulse_snap
 description: "PulseSnap — snap a BP monitor, get a reading."
 publish_to: 'none'
-version: 1.0.0+1
+version: 1.0.1+2
 
 environment:
   sdk: ^3.11.5

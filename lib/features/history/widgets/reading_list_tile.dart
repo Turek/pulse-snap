@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/extensions/datetime_extensions.dart';
-import '../../../core/utils/bp_category.dart';
+import '../../../core/theme/vital_colors.dart';
+import '../../../core/widgets/status_pill.dart';
 import '../../../core/widgets/tinted_card.dart';
 import '../../../data/database/app_database.dart';
+import '../../../domain/health/blood_pressure_status.dart';
+import '../../../domain/health/vital_classifiers.dart';
 
 class ReadingListTile extends StatelessWidget {
   final Reading reading;
@@ -14,8 +17,15 @@ class ReadingListTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
-    final cat = bpCategory(reading.systolic, reading.diastolic);
-    final accent = cat == BpCategory.unknown ? SectionAccent.slate : cat.color;
+
+    final sys = reading.systolic;
+    final dia = reading.diastolic;
+    BloodPressureStatus? bpStatus;
+    Color accent = SectionAccent.slate;
+    if (sys != null && dia != null) {
+      bpStatus = classifyBloodPressure(systolic: sys, diastolic: dia);
+      accent = bpStatusColor(bpStatus);
+    }
 
     return TintedCard(
       accent: accent,
@@ -56,6 +66,14 @@ class ReadingListTile extends StatelessWidget {
                         fontWeight: FontWeight.w500,
                       ),
                     ),
+                    if (bpStatus != null) ...[
+                      const SizedBox(width: 8),
+                      StatusPill(
+                        label: bpStatus.label,
+                        color: bpStatusColor(bpStatus),
+                        compact: true,
+                      ),
+                    ],
                   ],
                 ),
                 const SizedBox(height: 2),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+@Deprecated('Use BloodPressureStatus and classifyBloodPressure')
 enum BpCategory {
   unknown,
   normal,
@@ -9,6 +10,7 @@ enum BpCategory {
   crisis,
 }
 
+@Deprecated('Use BloodPressureStatus and classifyBloodPressure')
 extension BpCategoryX on BpCategory {
   String get label {
     switch (this) {
@@ -47,6 +49,7 @@ extension BpCategoryX on BpCategory {
 
 /// Classifies a BP reading per AHA guidelines (2017).
 /// Crisis takes precedence; otherwise the higher of the two values wins.
+@Deprecated('Use BloodPressureStatus and classifyBloodPressure')
 BpCategory bpCategory(int? systolic, int? diastolic) {
   if (systolic == null || diastolic == null) return BpCategory.unknown;
   if (systolic > 180 || diastolic > 120) return BpCategory.crisis;
