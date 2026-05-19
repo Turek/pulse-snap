@@ -199,8 +199,7 @@ class ReviewFormState extends ConsumerState<ReviewForm> {
           ActionButton.primary(
             onPressed: _canSave && !_saving ? _save : null,
             icon: _saving ? Icons.hourglass_top : Icons.check,
-            label: _saving ? 'Saving…' : 'Save reading',
-            flex: 2,
+            label: _saving ? 'Saving…' : 'Save',
           ),
         ],
       ),

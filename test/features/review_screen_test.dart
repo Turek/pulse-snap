@@ -69,7 +69,7 @@ void main() {
     )));
     await tester.pump();
     final saveButton = tester.widget<FilledButton>(
-      find.widgetWithText(FilledButton, 'Save reading'),
+      find.widgetWithText(FilledButton, 'Save'),
     );
     expect(saveButton.onPressed, isNull);
   });
@@ -88,7 +88,7 @@ void main() {
     )));
     await tester.pump();
     final saveButton = tester.widget<FilledButton>(
-      find.widgetWithText(FilledButton, 'Save reading'),
+      find.widgetWithText(FilledButton, 'Save'),
     );
     expect(saveButton.onPressed, isNotNull);
     expect(find.text('Normal'), findsOneWidget);
