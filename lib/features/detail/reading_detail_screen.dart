@@ -194,8 +194,7 @@ class _BodyState extends ConsumerState<_Body> {
                 ActionButton.primary(
                   onPressed: _save,
                   icon: Icons.check,
-                  label: 'Save changes',
-                  flex: 2,
+                  label: 'Save',
                 ),
               ]
             : [
@@ -209,7 +208,6 @@ class _BodyState extends ConsumerState<_Body> {
                   onPressed: () => setState(() => _editing = true),
                   icon: Icons.edit_outlined,
                   label: 'Edit',
-                  flex: 2,
                 ),
               ],
       ),

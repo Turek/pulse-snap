@@ -37,7 +37,6 @@ class ActionButton extends StatelessWidget {
   final VoidCallback? onPressed;
   final IconData icon;
   final String label;
-  final int flex;
   final _ActionButtonKind _kind;
 
   const ActionButton.primary({
@@ -45,7 +44,6 @@ class ActionButton extends StatelessWidget {
     required this.onPressed,
     required this.icon,
     required this.label,
-    this.flex = 1,
   }) : _kind = _ActionButtonKind.primary;
 
   const ActionButton.tonal({
@@ -53,7 +51,6 @@ class ActionButton extends StatelessWidget {
     required this.onPressed,
     required this.icon,
     required this.label,
-    this.flex = 1,
   }) : _kind = _ActionButtonKind.tonal;
 
   const ActionButton.danger({
@@ -61,7 +58,6 @@ class ActionButton extends StatelessWidget {
     required this.onPressed,
     required this.icon,
     required this.label,
-    this.flex = 1,
   }) : _kind = _ActionButtonKind.danger;
 
   @override
@@ -75,13 +71,17 @@ class ActionButton extends StatelessWidget {
     Widget btn;
     switch (_kind) {
       case _ActionButtonKind.primary:
+        // Match the dashboard's "New Reading" FloatingActionButton.extended
+        // colour scheme so primary CTAs across the app feel like one set.
         btn = FilledButton.icon(
           onPressed: onPressed,
           icon: Icon(icon, size: 20),
-          label: Text(label),
+          label: Text(label, overflow: TextOverflow.ellipsis),
           style: FilledButton.styleFrom(
             minimumSize: minSize,
             shape: shape,
+            backgroundColor: scheme.primaryContainer,
+            foregroundColor: scheme.onPrimaryContainer,
             textStyle: const TextStyle(fontWeight: FontWeight.w600),
           ),
         );
@@ -89,25 +89,30 @@ class ActionButton extends StatelessWidget {
         btn = FilledButton.tonalIcon(
           onPressed: onPressed,
           icon: Icon(icon, size: 20),
-          label: Text(label),
+          label: Text(label, overflow: TextOverflow.ellipsis),
           style: FilledButton.styleFrom(
             minimumSize: minSize,
             shape: shape,
           ),
         );
       case _ActionButtonKind.danger:
-        btn = OutlinedButton.icon(
+        btn = FilledButton.tonalIcon(
           onPressed: onPressed,
-          icon: Icon(icon, size: 20, color: scheme.error),
-          label: Text(label, style: TextStyle(color: scheme.error)),
-          style: OutlinedButton.styleFrom(
+          icon: Icon(icon, size: 20, color: scheme.onErrorContainer),
+          label: Text(
+            label,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(color: scheme.onErrorContainer),
+          ),
+          style: FilledButton.styleFrom(
             minimumSize: minSize,
             shape: shape,
-            side: BorderSide(color: scheme.error.withValues(alpha: 0.5)),
+            backgroundColor: scheme.errorContainer,
+            foregroundColor: scheme.onErrorContainer,
           ),
         );
     }
-    return Expanded(flex: flex, child: btn);
+    return Expanded(child: btn);
   }
 }
 
