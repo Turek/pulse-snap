@@ -13,6 +13,7 @@ import '../../core/widgets/tag_chip_row.dart';
 import '../../data/database/app_database.dart';
 import '../../domain/health/blood_pressure_status.dart';
 import '../../domain/health/heart_rate_status.dart';
+import '../../domain/health/reading_advisory.dart';
 import '../../domain/health/severity_level.dart';
 import '../../domain/health/vital_classifiers.dart';
 import '../../domain/models/scan_result.dart';
@@ -187,11 +188,11 @@ class ReviewFormState extends ConsumerState<ReviewForm> {
     final lowConfidence = widget.initial.confidence < 0.75;
     final theme = Theme.of(context);
     final usedGemini = widget.initial.source == ScannerType.geminiFlash;
-    final hrIsElevated = hrStatus == HeartRateStatus.mildlyHigh ||
-        hrStatus == HeartRateStatus.high ||
-        hrStatus == HeartRateStatus.veryHigh;
-    final hrAfterExercise = hrIsElevated &&
-        _tags.any((t) => t.toLowerCase() == 'after exercise');
+    final advisory = computeAdvisory(
+      bp: bpStatus,
+      hr: hrStatus,
+      tags: _tags,
+    );
 
     return Scaffold(
       appBar: AppBar(
@@ -326,12 +327,19 @@ class ReviewFormState extends ConsumerState<ReviewForm> {
                     ],
                   ),
                 ),
-              if (hrIsElevated) ...[
+              if (advisory.bpSubtitle != null) ...[
                 const SizedBox(height: 8),
                 Text(
-                  hrAfterExercise
-                      ? 'Elevated pulse may reflect recent activity'
-                      : 'Resting pulse is above the normal range',
+                  advisory.bpSubtitle!,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
+              if (advisory.hrSubtitle != null) ...[
+                const SizedBox(height: 8),
+                Text(
+                  advisory.hrSubtitle!,
                   style: theme.textTheme.bodySmall?.copyWith(
                     color: theme.colorScheme.onSurfaceVariant,
                   ),
