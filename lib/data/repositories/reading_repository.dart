@@ -1,19 +1,28 @@
-import 'package:drift/drift.dart';
+import 'dart:async';
 
+import 'package:drift/drift.dart';
+import 'package:flutter/foundation.dart';
+
+import '../../domain/health_platform/health_platform_service.dart';
+import '../../domain/health_platform/reading_source_type.dart';
 import '../../domain/repositories/i_reading_repository.dart';
 import '../../domain/tags/reading_with_tags.dart';
 import '../database/app_database.dart';
+import '../health_platform/health_plus_service.dart';
 
 class ReadingRepository implements IReadingRepository {
   final AppDatabase _db;
-  ReadingRepository(this._db);
+  final IHealthPlatformService? _health;
+  ReadingRepository(this._db, {IHealthPlatformService? healthPlatformService})
+      : _health = healthPlatformService;
 
   @override
   Future<void> saveReading(
     Reading reading, {
     List<String> tags = const [],
-  }) {
-    return _db.transaction(() async {
+  }) async {
+    final dedupedTags = _dedupe(tags);
+    final readingId = await _db.transaction(() async {
       // id <= 0 means "new row" — let SQLite assign the id.
       final companion = reading.id <= 0
           ? reading.toCompanion(true).copyWith(id: const Value.absent())
@@ -22,34 +31,37 @@ class ReadingRepository implements IReadingRepository {
             companion,
             mode: InsertMode.insertOrReplace,
           );
-      final readingId = reading.id <= 0 ? id : reading.id;
+      final newId = reading.id <= 0 ? id : reading.id;
       // Replace tag set for this reading.
       await (_db.delete(_db.readingTags)
-            ..where((t) => t.readingId.equals(readingId)))
+            ..where((t) => t.readingId.equals(newId)))
           .go();
-      for (final tag in _dedupe(tags)) {
+      for (final tag in dedupedTags) {
         await _db.into(_db.readingTags).insert(
               ReadingTagsCompanion.insert(
-                readingId: readingId,
+                readingId: newId,
                 value: tag,
               ),
             );
       }
+      return newId;
     });
+    unawaited(_syncToHealthPlatform(readingId, dedupedTags));
   }
 
   @override
   Future<void> updateReading(
     Reading reading, {
     List<String> tags = const [],
-  }) {
-    return _db.transaction(() async {
+  }) async {
+    final dedupedTags = _dedupe(tags);
+    await _db.transaction(() async {
       await (_db.update(_db.readings)..where((t) => t.id.equals(reading.id)))
           .write(reading.toCompanion(true));
       await (_db.delete(_db.readingTags)
             ..where((t) => t.readingId.equals(reading.id)))
           .go();
-      for (final tag in _dedupe(tags)) {
+      for (final tag in dedupedTags) {
         await _db.into(_db.readingTags).insert(
               ReadingTagsCompanion.insert(
                 readingId: reading.id,
@@ -58,6 +70,42 @@ class ReadingRepository implements IReadingRepository {
             );
       }
     });
+    unawaited(_syncToHealthPlatform(reading.id, dedupedTags));
+  }
+
+  /// Fire-and-forget write to the system health platform. Wrapped in a
+  /// try/catch so a sync failure can never block a local save.
+  Future<void> _syncToHealthPlatform(int readingId, List<String> tags) async {
+    final svc = _health;
+    if (svc == null) return;
+    try {
+      if (!await svc.hasWritePermissions()) return;
+      final reading = await (_db.select(_db.readings)
+            ..where((t) => t.id.equals(readingId)))
+          .getSingleOrNull();
+      if (reading == null) return;
+      final externalId = await svc.writeReading(
+        ReadingWithTags(reading: reading, tags: tags),
+      );
+      if (externalId == null) return;
+      await _db.into(_db.externalSyncRecords).insert(
+            ExternalSyncRecordsCompanion.insert(
+              readingId: readingId,
+              sourceType: _exportSourceType().name,
+              externalId: externalId,
+              platform: currentHealthPlatformName(),
+            ),
+          );
+    } catch (e, st) {
+      debugPrint('Health-platform sync failed for reading $readingId: $e\n$st');
+    }
+  }
+
+  static ReadingSourceType _exportSourceType() {
+    final name = currentHealthPlatformName();
+    return name == 'apple_health'
+        ? ReadingSourceType.appleHealthExport
+        : ReadingSourceType.healthConnectExport;
   }
 
   @override

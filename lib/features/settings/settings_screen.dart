@@ -7,6 +7,7 @@ import '../../data/database/app_database.dart';
 import '../../domain/models/scan_result.dart';
 import '../../providers.dart';
 import 'settings_provider.dart';
+import 'widgets/health_platform_tile.dart';
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -27,6 +28,13 @@ class SettingsScreen extends ConsumerWidget {
             trailing: const Icon(Icons.chevron_right),
             onTap: () => context.push('/export'),
           ),
+          const Divider(),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+            child: Text('Health Platforms',
+                style: Theme.of(context).textTheme.titleMedium),
+          ),
+          const HealthPlatformTile(),
           const Divider(),
           const ListTile(
             leading: Icon(Icons.info_outline),
