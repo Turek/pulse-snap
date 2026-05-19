@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../data/database/app_database.dart';
 import '../../domain/models/scan_result.dart';
@@ -17,6 +18,15 @@ class SettingsScreen extends ConsumerWidget {
       body: ListView(
         children: [
           const _GeminiApiKeyTile(),
+          const Divider(),
+          ListTile(
+            leading: const Icon(Icons.picture_as_pdf_outlined),
+            title: const Text('Export PDF'),
+            subtitle: const Text(
+                'Doctor-friendly report over a chosen date range.'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => context.push('/export'),
+          ),
           const Divider(),
           const ListTile(
             leading: Icon(Icons.info_outline),
