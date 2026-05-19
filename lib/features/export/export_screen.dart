@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:printing/printing.dart';
 
-import '../../core/widgets/action_bar.dart';
 import '../../domain/models/scan_result.dart';
 import '../../domain/tags/reading_with_tags.dart';
 import '../../providers.dart';
@@ -16,7 +15,6 @@ class ExportScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final opts = ref.watch(exportOptionsProvider);
     final readingsAsync = ref.watch(readingsProvider);
-    final dateFmt = DateFormat.yMMMd();
     final isoFmt = DateFormat('yyyy-MM-dd');
 
     Future<void> pickCustomRange() async {
@@ -34,33 +32,6 @@ class ExportScreen extends ConsumerWidget {
       }
     }
 
-    Widget presetButton({
-      required ExportRangePreset preset,
-      required String label,
-      required VoidCallback onTap,
-    }) {
-      final selected = opts.preset == preset;
-      final btn = selected
-          ? ActionButton.primary(
-              onPressed: onTap,
-              icon: _iconFor(preset),
-              label: label,
-            )
-          : ActionButton.tonal(
-              onPressed: onTap,
-              icon: _iconFor(preset),
-              label: label,
-            );
-      // ActionButton internally wraps itself in Expanded, so it must live
-      // in a Row (or Flex) parent. Keying the Row on selection forces a
-      // fresh widget subtree when intent changes, avoiding TextStyle
-      // inherit-flag lerp errors during the Material state animation.
-      return Row(
-        key: ValueKey('preset-row-$preset-$selected'),
-        children: [btn],
-      );
-    }
-
     final customLabel = opts.preset == ExportRangePreset.custom
         ? 'Custom: ${isoFmt.format(opts.from)} → ${isoFmt.format(opts.to)}'
         : 'Custom range…';
@@ -76,39 +47,16 @@ class ExportScreen extends ConsumerWidget {
           Text('Date range',
               style: Theme.of(context).textTheme.titleMedium),
           const SizedBox(height: 8),
-          presetButton(
-            preset: ExportRangePreset.last7Days,
-            label: 'Last 7 days',
-            onTap: () => ref
-                .read(exportOptionsProvider.notifier)
-                .setPreset(ExportRangePreset.last7Days),
-          ),
-          const SizedBox(height: 8),
-          presetButton(
-            preset: ExportRangePreset.last14Days,
-            label: 'Last 14 days',
-            onTap: () => ref
-                .read(exportOptionsProvider.notifier)
-                .setPreset(ExportRangePreset.last14Days),
-          ),
-          const SizedBox(height: 8),
-          presetButton(
-            preset: ExportRangePreset.last30Days,
-            label: 'Last 30 days',
-            onTap: () => ref
-                .read(exportOptionsProvider.notifier)
-                .setPreset(ExportRangePreset.last30Days),
-          ),
-          const SizedBox(height: 8),
-          presetButton(
-            preset: ExportRangePreset.custom,
-            label: customLabel,
-            onTap: pickCustomRange,
-          ),
-          const SizedBox(height: 8),
-          Text(
-            '${dateFmt.format(opts.from)} – ${dateFmt.format(opts.to)}',
-            style: Theme.of(context).textTheme.bodyMedium,
+          _PresetGroup(
+            selected: opts.preset,
+            customLabel: customLabel,
+            onSelect: (p) {
+              if (p == ExportRangePreset.custom) {
+                pickCustomRange();
+              } else {
+                ref.read(exportOptionsProvider.notifier).setPreset(p);
+              }
+            },
           ),
           const SizedBox(height: 20),
           Text('Sources',
@@ -129,29 +77,151 @@ class ExportScreen extends ConsumerWidget {
             title: const Text('Manual'),
             controlAffinity: ListTileControlAffinity.leading,
           ),
-          const SizedBox(height: 16),
-          FilledButton.icon(
-            icon: const Icon(Icons.picture_as_pdf),
-            label: const Text('Generate preview'),
-            style: FilledButton.styleFrom(
-              backgroundColor:
-                  Theme.of(context).colorScheme.primaryContainer,
-              foregroundColor:
-                  Theme.of(context).colorScheme.onPrimaryContainer,
-              minimumSize: const Size.fromHeight(52),
-            ),
-            onPressed: readingsAsync.maybeWhen(
-              data: (_) => () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => const _PreviewPage(),
-                  ),
-                );
-              },
-              orElse: () => null,
+          const SizedBox(height: 24),
+          _GeneratePreviewButton(
+            enabled: readingsAsync.hasValue,
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const _PreviewPage()),
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _PresetGroup extends StatelessWidget {
+  final ExportRangePreset selected;
+  final String customLabel;
+  final ValueChanged<ExportRangePreset> onSelect;
+
+  const _PresetGroup({
+    required this.selected,
+    required this.customLabel,
+    required this.onSelect,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    const items = <(ExportRangePreset, String)>[
+      (ExportRangePreset.last7Days, 'Last 7 days'),
+      (ExportRangePreset.last14Days, 'Last 14 days'),
+      (ExportRangePreset.last30Days, 'Last 30 days'),
+    ];
+
+    return Container(
+      clipBehavior: Clip.antiAlias,
+      decoration: BoxDecoration(
+        color: scheme.surface,
+        border: Border.all(color: scheme.outlineVariant),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        children: [
+          for (var i = 0; i < items.length; i++) ...[
+            _PresetRow(
+              preset: items[i].$1,
+              label: items[i].$2,
+              selected: selected == items[i].$1,
+              onTap: () => onSelect(items[i].$1),
+            ),
+            Divider(height: 1, color: scheme.outlineVariant),
+          ],
+          _PresetRow(
+            preset: ExportRangePreset.custom,
+            label: customLabel,
+            selected: selected == ExportRangePreset.custom,
+            onTap: () => onSelect(ExportRangePreset.custom),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PresetRow extends StatelessWidget {
+  final ExportRangePreset preset;
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _PresetRow({
+    required this.preset,
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final bg = selected ? scheme.primary : Colors.transparent;
+    final fg = selected ? scheme.onPrimary : scheme.onSurfaceVariant;
+    final weight = selected ? FontWeight.w600 : FontWeight.w500;
+
+    return Material(
+      color: bg,
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          child: Row(
+            children: [
+              Icon(_iconFor(preset), size: 20, color: fg),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  label,
+                  style: TextStyle(
+                    color: fg,
+                    fontWeight: weight,
+                    fontSize: 15,
+                  ),
+                  softWrap: true,
+                ),
+              ),
+              if (selected)
+                Icon(Icons.check, size: 18, color: fg)
+              else if (preset == ExportRangePreset.custom)
+                Icon(Icons.chevron_right, size: 20, color: fg),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _GeneratePreviewButton extends StatelessWidget {
+  final bool enabled;
+  final VoidCallback onPressed;
+  const _GeneratePreviewButton({
+    required this.enabled,
+    required this.onPressed,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return SizedBox(
+      width: double.infinity,
+      child: FilledButton.icon(
+        onPressed: enabled ? onPressed : null,
+        icon: const Icon(Icons.picture_as_pdf),
+        label: const Text('Generate preview'),
+        style: FilledButton.styleFrom(
+          backgroundColor: scheme.primary,
+          foregroundColor: scheme.onPrimary,
+          minimumSize: const Size.fromHeight(56),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          textStyle: const TextStyle(
+            fontWeight: FontWeight.w600,
+            fontSize: 16,
+          ),
+        ),
       ),
     );
   }
