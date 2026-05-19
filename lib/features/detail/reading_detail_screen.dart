@@ -4,11 +4,16 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
-import '../../core/utils/bp_category.dart';
+import '../../core/theme/vital_colors.dart';
 import '../../core/widgets/action_bar.dart';
 import '../../core/widgets/back_or_home_button.dart';
+import '../../core/widgets/status_pill.dart';
 import '../../core/widgets/tinted_card.dart';
 import '../../data/database/app_database.dart';
+import '../../domain/health/blood_pressure_status.dart';
+import '../../domain/health/heart_rate_status.dart';
+import '../../domain/health/severity_level.dart';
+import '../../domain/health/vital_classifiers.dart';
 import '../../domain/models/scan_result.dart';
 import '../../providers.dart';
 
@@ -168,8 +173,13 @@ class _BodyState extends ConsumerState<_Body> {
     final sys = int.tryParse(_sys.text);
     final dia = int.tryParse(_dia.text);
     final pulse = int.tryParse(_pulse.text);
-    final cat = bpCategory(sys, dia);
-    final accent = cat == BpCategory.unknown ? SectionAccent.sky : cat.color;
+    final bpStatus = (sys != null && dia != null)
+        ? classifyBloodPressure(systolic: sys, diastolic: dia)
+        : null;
+    final hrStatus =
+        pulse != null ? classifyHeartRate(bpm: pulse) : null;
+    final accent =
+        bpStatus == null ? SectionAccent.sky : bpStatusColor(bpStatus);
     // While editing, the row will be saved as manual regardless of where
     // it came from.
     final effectiveSource =
@@ -214,6 +224,10 @@ class _BodyState extends ConsumerState<_Body> {
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
         children: [
+          if (bpStatus == BloodPressureStatus.crisis) ...[
+            _CrisisBanner(),
+            const SizedBox(height: 16),
+          ],
           // READING (big numbers, category accent)
           Text('READING', style: sectionStyle),
           const SizedBox(height: 8),
@@ -234,8 +248,8 @@ class _BodyState extends ConsumerState<_Body> {
                     sys: sys,
                     dia: dia,
                     pulse: pulse,
-                    accent: accent,
-                    category: cat,
+                    bpStatus: bpStatus,
+                    hrStatus: hrStatus,
                   ),
           ),
           const SizedBox(height: 24),
@@ -345,14 +359,14 @@ class _ReadingDisplay extends StatelessWidget {
   final int? sys;
   final int? dia;
   final int? pulse;
-  final Color accent;
-  final BpCategory category;
+  final BloodPressureStatus? bpStatus;
+  final HeartRateStatus? hrStatus;
   const _ReadingDisplay({
     required this.sys,
     required this.dia,
     required this.pulse,
-    required this.accent,
-    required this.category,
+    required this.bpStatus,
+    required this.hrStatus,
   });
 
   @override
@@ -424,27 +438,70 @@ class _ReadingDisplay extends StatelessWidget {
             ),
           ],
         ),
-        if (category != BpCategory.unknown) ...[
+        if (bpStatus != null || hrStatus != null) ...[
           const SizedBox(height: 14),
-          Row(
+          Wrap(
+            spacing: 8,
+            runSpacing: 6,
             children: [
-              Container(
-                width: 8,
-                height: 8,
-                decoration: BoxDecoration(
-                    color: accent, shape: BoxShape.circle),
-              ),
-              const SizedBox(width: 8),
-              Text(
-                category.label,
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: scheme.onSurfaceVariant,
+              if (bpStatus != null)
+                StatusPill(
+                  label: bpStatus!.label,
+                  color: bpStatusColor(bpStatus!),
                 ),
-              ),
+              if (hrStatus != null)
+                StatusPill(
+                  label: 'Pulse · ${hrStatus!.label}',
+                  color: hrStatusColor(hrStatus!),
+                ),
             ],
           ),
         ],
       ],
+    );
+  }
+}
+
+class _CrisisBanner extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Container(
+      padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+      decoration: BoxDecoration(
+        color: severityBackground(SeverityLevel.urgent),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: VitalColors.bpCrisis.withValues(alpha: 0.45),
+        ),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(Icons.warning_amber_rounded,
+              color: VitalColors.bpCrisis),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Hypertensive crisis range',
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    color: VitalColors.bpCrisis,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  'Values above 180/120 mmHg can be urgent. Consider re-measuring and seeking medical advice if symptoms are present.',
+                  style: theme.textTheme.bodySmall,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

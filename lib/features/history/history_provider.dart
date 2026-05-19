@@ -1,8 +1,9 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../core/extensions/datetime_extensions.dart';
-import '../../core/utils/bp_category.dart';
 import '../../data/database/app_database.dart';
+import '../../domain/health/blood_pressure_status.dart';
+import '../../domain/health/vital_classifiers.dart';
 import '../../providers.dart';
 
 class HistorySearchNotifier extends Notifier<String> {
@@ -23,11 +24,16 @@ Map<DateTime, List<Reading>> groupByDay(List<Reading> readings) {
   return out;
 }
 
-BpCategory worstCategoryOfDay(List<Reading> readings) {
-  var worst = BpCategory.unknown;
+/// Highest-severity BP status among the day's readings, or `null` if no
+/// reading on that day has both systolic + diastolic values.
+BloodPressureStatus? worstBpStatusOfDay(List<Reading> readings) {
+  BloodPressureStatus? worst;
   for (final r in readings) {
-    final c = bpCategory(r.systolic, r.diastolic);
-    if (c.index > worst.index) worst = c;
+    final s = r.systolic;
+    final d = r.diastolic;
+    if (s == null || d == null) continue;
+    final status = classifyBloodPressure(systolic: s, diastolic: d);
+    if (worst == null || status.index > worst.index) worst = status;
   }
   return worst;
 }

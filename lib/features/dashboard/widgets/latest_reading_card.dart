@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
 
 import '../../../core/extensions/datetime_extensions.dart';
-import '../../../core/utils/bp_category.dart';
+import '../../../core/theme/vital_colors.dart';
+import '../../../core/widgets/status_pill.dart';
 import '../../../core/widgets/tinted_card.dart';
 import '../../../data/database/app_database.dart';
+import '../../../domain/health/blood_pressure_status.dart';
+import '../../../domain/health/heart_rate_status.dart';
+import '../../../domain/health/vital_classifiers.dart';
 
 class LatestReadingCard extends StatelessWidget {
   final Reading reading;
@@ -13,8 +17,22 @@ class LatestReadingCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
-    final cat = bpCategory(reading.systolic, reading.diastolic);
-    final accent = cat == BpCategory.unknown ? SectionAccent.sky : cat.color;
+
+    final sys = reading.systolic;
+    final dia = reading.diastolic;
+    final pulse = reading.pulse;
+
+    BloodPressureStatus? bpStatus;
+    Color accent = SectionAccent.sky;
+    if (sys != null && dia != null) {
+      bpStatus = classifyBloodPressure(systolic: sys, diastolic: dia);
+      accent = bpStatusColor(bpStatus);
+    }
+
+    HeartRateStatus? hrStatus;
+    if (pulse != null) {
+      hrStatus = classifyHeartRate(bpm: pulse);
+    }
 
     return TintedCard(
       accent: accent,
@@ -84,7 +102,26 @@ class LatestReadingCard extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 14),
+          if (bpStatus != null || hrStatus != null) ...[
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 8,
+              runSpacing: 6,
+              children: [
+                if (bpStatus != null)
+                  StatusPill(
+                    label: bpStatus.label,
+                    color: bpStatusColor(bpStatus),
+                  ),
+                if (hrStatus != null)
+                  StatusPill(
+                    label: 'Pulse · ${hrStatus.label}',
+                    color: hrStatusColor(hrStatus),
+                  ),
+              ],
+            ),
+          ],
+          const SizedBox(height: 12),
           Row(
             children: [
               Container(

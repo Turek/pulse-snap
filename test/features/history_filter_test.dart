@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:pulse_snap/core/utils/bp_category.dart';
 import 'package:pulse_snap/data/database/app_database.dart';
+import 'package:pulse_snap/domain/health/blood_pressure_status.dart';
 import 'package:pulse_snap/domain/models/scan_result.dart';
 import 'package:pulse_snap/features/history/history_provider.dart';
 
@@ -30,16 +30,22 @@ void main() {
     });
   });
 
-  group('worstCategoryOfDay', () {
-    test('returns highest severity category for the day', () {
+  group('worstBpStatusOfDay', () {
+    test('returns highest severity status for the day', () {
       final normal = _r(DateTime(2026, 5, 18, 8), sys: 110, dia: 70);
       final stage1 = _r(DateTime(2026, 5, 18, 20), sys: 135, dia: 85);
-      expect(worstCategoryOfDay([normal, stage1]), BpCategory.stage1);
+      expect(
+        worstBpStatusOfDay([normal, stage1]),
+        BloodPressureStatus.highStage1,
+      );
     });
     test('crisis dominates regardless of other readings', () {
       final normal = _r(DateTime(2026, 5, 18, 8), sys: 110, dia: 70);
       final crisis = _r(DateTime(2026, 5, 18, 20), sys: 190, dia: 130);
-      expect(worstCategoryOfDay([normal, crisis]), BpCategory.crisis);
+      expect(
+        worstBpStatusOfDay([normal, crisis]),
+        BloodPressureStatus.crisis,
+      );
     });
   });
 
