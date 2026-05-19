@@ -38,11 +38,14 @@ class DashboardScreen extends ConsumerWidget {
                 children: [
                   Text('LATEST', style: sectionStyle),
                   const SizedBox(height: 8),
-                  if (s.latest != null) LatestReadingCard(reading: s.latest!),
+                  if (s.latest != null)
+                    LatestReadingCard(reading: s.latest!.reading),
                   const SizedBox(height: 24),
                   Text('LAST 30 DAYS', style: sectionStyle),
                   const SizedBox(height: 8),
-                  TrendChart(readings: s.last30Days),
+                  TrendChart(
+                    readings: s.last30Days.map((r) => r.reading).toList(),
+                  ),
                   const SizedBox(height: 24),
                   Text('AVERAGES', style: sectionStyle),
                   const SizedBox(height: 8),

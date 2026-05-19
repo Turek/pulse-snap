@@ -4,19 +4,25 @@ import '../../../core/extensions/datetime_extensions.dart';
 import '../../../core/theme/vital_colors.dart';
 import '../../../core/widgets/status_pill.dart';
 import '../../../core/widgets/tinted_card.dart';
-import '../../../data/database/app_database.dart';
 import '../../../domain/health/blood_pressure_status.dart';
 import '../../../domain/health/vital_classifiers.dart';
+import '../../../domain/tags/reading_with_tags.dart';
 
 class ReadingListTile extends StatelessWidget {
-  final Reading reading;
+  final ReadingWithTags readingWithTags;
   final VoidCallback? onTap;
-  const ReadingListTile({super.key, required this.reading, this.onTap});
+  const ReadingListTile({
+    super.key,
+    required this.readingWithTags,
+    this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
+    final reading = readingWithTags.reading;
+    final tags = readingWithTags.tags;
 
     final sys = reading.systolic;
     final dia = reading.diastolic;
@@ -57,7 +63,8 @@ class ReadingListTile extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(width: 10),
-                    Icon(Icons.favorite, size: 12, color: scheme.onSurfaceVariant),
+                    Icon(Icons.favorite,
+                        size: 12, color: scheme.onSurfaceVariant),
                     const SizedBox(width: 3),
                     Text(
                       '${reading.pulse ?? '–'}',
@@ -83,11 +90,47 @@ class ReadingListTile extends StatelessWidget {
                     color: scheme.onSurfaceVariant,
                   ),
                 ),
+                if (tags.isNotEmpty) ...[
+                  const SizedBox(height: 6),
+                  SizedBox(
+                    height: 22,
+                    child: ListView.separated(
+                      scrollDirection: Axis.horizontal,
+                      itemCount: tags.length,
+                      separatorBuilder: (_, _) => const SizedBox(width: 6),
+                      itemBuilder: (_, i) => _TagPill(label: tags[i]),
+                    ),
+                  ),
+                ],
               ],
             ),
           ),
           Icon(Icons.chevron_right, color: scheme.onSurfaceVariant),
         ],
+      ),
+    );
+  }
+}
+
+class _TagPill extends StatelessWidget {
+  final String label;
+  const _TagPill({required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: scheme.surfaceContainerHighest.withValues(alpha: 0.6),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Text(
+        label,
+        style: theme.textTheme.labelSmall?.copyWith(
+          color: scheme.onSurfaceVariant,
+        ),
       ),
     );
   }

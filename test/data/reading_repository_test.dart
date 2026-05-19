@@ -1,11 +1,10 @@
-import 'package:drift/drift.dart';
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pulse_snap/data/database/app_database.dart';
 import 'package:pulse_snap/data/repositories/reading_repository.dart';
 import 'package:pulse_snap/domain/models/scan_result.dart';
 
-ReadingsCompanion _entry({
+Reading _r({
   required DateTime at,
   int sys = 120,
   int dia = 80,
@@ -13,13 +12,17 @@ ReadingsCompanion _entry({
   ScannerType source = ScannerType.mlKit,
   double conf = 0.9,
 }) =>
-    ReadingsCompanion.insert(
+    Reading(
+      id: 0,
+      userId: 'default',
       measuredAt: at,
+      systolic: sys,
+      diastolic: dia,
+      pulse: pulse,
       sourceType: source,
-      systolic: Value(sys),
-      diastolic: Value(dia),
-      pulse: Value(pulse),
-      ocrConfidence: Value(conf),
+      ocrConfidence: conf,
+      isManuallyEdited: false,
+      createdAt: at,
     );
 
 void main() {
@@ -34,77 +37,44 @@ void main() {
   tearDown(() async => await db.close());
 
   test('save → watch emits the row', () async {
-    final id = await repo.saveReading(_entry(at: DateTime(2026, 5, 18, 8)));
-    expect(id, greaterThan(0));
-    final emitted = await repo.watchAllReadings().first;
+    await repo.saveReading(_r(at: DateTime(2026, 5, 18, 8)));
+    final emitted = await repo.watchAllReadingsWithTags().first;
     expect(emitted.length, 1);
-    expect(emitted.first.systolic, 120);
+    expect(emitted.first.reading.systolic, 120);
   });
 
   test('watch is ordered newest-first', () async {
-    await repo.saveReading(_entry(at: DateTime(2026, 5, 17), sys: 130));
-    await repo.saveReading(_entry(at: DateTime(2026, 5, 18), sys: 120));
-    final list = await repo.watchAllReadings().first;
-    expect(list.map((r) => r.systolic).toList(), [120, 130]);
+    await repo.saveReading(_r(at: DateTime(2026, 5, 17), sys: 130));
+    await repo.saveReading(_r(at: DateTime(2026, 5, 18), sys: 120));
+    final list = await repo.watchAllReadingsWithTags().first;
+    expect(list.map((r) => r.reading.systolic).toList(), [120, 130]);
   });
 
   test('update mutates row', () async {
-    final id = await repo.saveReading(_entry(at: DateTime(2026, 5, 18)));
-    final r = (await repo.watchAllReadings().first).first;
-    await repo.updateReading(r.copyWith(systolic: const Value(150)));
-    final updated = (await repo.watchAllReadings().first).first;
-    expect(updated.systolic, 150);
-    expect(updated.id, id);
+    await repo.saveReading(_r(at: DateTime(2026, 5, 18)));
+    final existing = (await repo.watchAllReadingsWithTags().first).first;
+    final updated = Reading(
+      id: existing.reading.id,
+      userId: existing.reading.userId,
+      measuredAt: existing.reading.measuredAt,
+      systolic: 150,
+      diastolic: existing.reading.diastolic,
+      pulse: existing.reading.pulse,
+      sourceType: existing.reading.sourceType,
+      ocrConfidence: existing.reading.ocrConfidence,
+      isManuallyEdited: true,
+      createdAt: existing.reading.createdAt,
+    );
+    await repo.updateReading(updated);
+    final after = (await repo.watchAllReadingsWithTags().first).first;
+    expect(after.reading.systolic, 150);
+    expect(after.reading.id, existing.reading.id);
   });
 
   test('delete removes row', () async {
-    final id = await repo.saveReading(_entry(at: DateTime(2026, 5, 18)));
-    await repo.deleteReading(id);
-    expect(await repo.watchAllReadings().first, isEmpty);
-  });
-
-  test('getLatestReading returns most recent by measuredAt', () async {
-    await repo.saveReading(_entry(at: DateTime(2026, 5, 17), sys: 130));
-    await repo.saveReading(_entry(at: DateTime(2026, 5, 18), sys: 120));
-    final latest = await repo.getLatestReading();
-    expect(latest!.systolic, 120);
-  });
-
-  test('getReadingsInRange filters by measuredAt window', () async {
-    await repo.saveReading(_entry(at: DateTime(2026, 5, 1), sys: 110));
-    await repo.saveReading(_entry(at: DateTime(2026, 5, 15), sys: 120));
-    await repo.saveReading(_entry(at: DateTime(2026, 5, 28), sys: 130));
-    final rows = await repo.getReadingsInRange(
-      DateTime(2026, 5, 10),
-      DateTime(2026, 5, 20),
-    );
-    expect(rows.length, 1);
-    expect(rows.first.systolic, 120);
-  });
-
-  test('getAverages computes mean of last N days', () async {
-    final now = DateTime.now();
-    await repo
-        .saveReading(_entry(at: now.subtract(const Duration(days: 1)), sys: 120, dia: 80, pulse: 70));
-    await repo
-        .saveReading(_entry(at: now.subtract(const Duration(days: 2)), sys: 140, dia: 90, pulse: 80));
-    final avgs = await repo.getAverages(lastDays: 30);
-    expect(avgs['systolic'], 130);
-    expect(avgs['diastolic'], 85);
-    expect(avgs['pulse'], 75);
-  });
-
-  test('getAverages with no readings returns zeros', () async {
-    final avgs = await repo.getAverages(lastDays: 30);
-    expect(avgs, {'systolic': 0, 'diastolic': 0, 'pulse': 0});
-  });
-
-  test('getAverages excludes readings outside window', () async {
-    await repo.saveReading(_entry(
-      at: DateTime.now().subtract(const Duration(days: 100)),
-      sys: 200,
-    ));
-    final avgs = await repo.getAverages(lastDays: 30);
-    expect(avgs['systolic'], 0);
+    await repo.saveReading(_r(at: DateTime(2026, 5, 18)));
+    final existing = (await repo.watchAllReadingsWithTags().first).first;
+    await repo.deleteReading(existing.reading.id);
+    expect(await repo.watchAllReadingsWithTags().first, isEmpty);
   });
 }

@@ -2,20 +2,28 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:pulse_snap/data/database/app_database.dart';
 import 'package:pulse_snap/domain/health/blood_pressure_status.dart';
 import 'package:pulse_snap/domain/models/scan_result.dart';
+import 'package:pulse_snap/domain/tags/reading_with_tags.dart';
 import 'package:pulse_snap/features/history/history_provider.dart';
 
-Reading _r(DateTime at, {String? notes, int sys = 120, int dia = 80}) =>
-    Reading(
-      id: at.millisecondsSinceEpoch ~/ 1000,
-      userId: 'default',
-      measuredAt: at,
-      systolic: sys,
-      diastolic: dia,
-      pulse: 72,
-      sourceType: ScannerType.mlKit,
-      notes: notes,
-      isManuallyEdited: false,
-      createdAt: at,
+ReadingWithTags _r(
+  DateTime at, {
+  List<String> tags = const [],
+  int sys = 120,
+  int dia = 80,
+}) =>
+    ReadingWithTags(
+      reading: Reading(
+        id: at.millisecondsSinceEpoch ~/ 1000,
+        userId: 'default',
+        measuredAt: at,
+        systolic: sys,
+        diastolic: dia,
+        pulse: 72,
+        sourceType: ScannerType.mlKit,
+        isManuallyEdited: false,
+        createdAt: at,
+      ),
+      tags: tags,
     );
 
 void main() {
@@ -52,8 +60,8 @@ void main() {
   group('readingsForDay', () {
     final byDay = {
       DateTime(2026, 5, 18): [
-        _r(DateTime(2026, 5, 18, 8), notes: 'after pizza'),
-        _r(DateTime(2026, 5, 18, 20)),
+        _r(DateTime(2026, 5, 18, 8), tags: ['after coffee', 'sitting']),
+        _r(DateTime(2026, 5, 18, 20), tags: ['stress']),
       ],
       DateTime(2026, 5, 19): [_r(DateTime(2026, 5, 19, 9))],
     };
@@ -67,11 +75,21 @@ void main() {
       expect(list, hasLength(2));
     });
 
-    test('narrows to notes substring when search is set', () {
+    test('narrows to tag substring when search is set', () {
       final list = readingsForDay(
         byDay: byDay,
         day: DateTime(2026, 5, 18),
-        search: 'pizza',
+        search: 'coffee',
+      );
+      expect(list, hasLength(1));
+      expect(list.first.tags, contains('after coffee'));
+    });
+
+    test('tag substring match is case-insensitive', () {
+      final list = readingsForDay(
+        byDay: byDay,
+        day: DateTime(2026, 5, 18),
+        search: 'STRESS',
       );
       expect(list, hasLength(1));
     });
@@ -91,8 +109,8 @@ void main() {
         day: DateTime(2026, 5, 18),
         search: '',
       );
-      expect(list.first.measuredAt.hour, 20);
-      expect(list.last.measuredAt.hour, 8);
+      expect(list.first.reading.measuredAt.hour, 20);
+      expect(list.last.reading.measuredAt.hour, 8);
     });
   });
 }

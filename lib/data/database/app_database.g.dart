@@ -93,15 +93,6 @@ class $ReadingsTable extends Readings with TableInfo<$ReadingsTable, Reading> {
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
-  static const VerificationMeta _notesMeta = const VerificationMeta('notes');
-  @override
-  late final GeneratedColumn<String> notes = GeneratedColumn<String>(
-    'notes',
-    aliasedName,
-    true,
-    type: DriftSqlType.string,
-    requiredDuringInsert: false,
-  );
   static const VerificationMeta _ocrConfidenceMeta = const VerificationMeta(
     'ocrConfidence',
   );
@@ -150,7 +141,6 @@ class $ReadingsTable extends Readings with TableInfo<$ReadingsTable, Reading> {
     pulse,
     sourceType,
     deviceLabel,
-    notes,
     ocrConfidence,
     isManuallyEdited,
     createdAt,
@@ -209,12 +199,6 @@ class $ReadingsTable extends Readings with TableInfo<$ReadingsTable, Reading> {
           data['device_label']!,
           _deviceLabelMeta,
         ),
-      );
-    }
-    if (data.containsKey('notes')) {
-      context.handle(
-        _notesMeta,
-        notes.isAcceptableOrUnknown(data['notes']!, _notesMeta),
       );
     }
     if (data.containsKey('ocr_confidence')) {
@@ -284,10 +268,6 @@ class $ReadingsTable extends Readings with TableInfo<$ReadingsTable, Reading> {
         DriftSqlType.string,
         data['${effectivePrefix}device_label'],
       ),
-      notes: attachedDatabase.typeMapping.read(
-        DriftSqlType.string,
-        data['${effectivePrefix}notes'],
-      ),
       ocrConfidence: attachedDatabase.typeMapping.read(
         DriftSqlType.double,
         data['${effectivePrefix}ocr_confidence'],
@@ -321,7 +301,6 @@ class Reading extends DataClass implements Insertable<Reading> {
   final int? pulse;
   final ScannerType sourceType;
   final String? deviceLabel;
-  final String? notes;
   final double? ocrConfidence;
   final bool isManuallyEdited;
   final DateTime createdAt;
@@ -334,7 +313,6 @@ class Reading extends DataClass implements Insertable<Reading> {
     this.pulse,
     required this.sourceType,
     this.deviceLabel,
-    this.notes,
     this.ocrConfidence,
     required this.isManuallyEdited,
     required this.createdAt,
@@ -362,9 +340,6 @@ class Reading extends DataClass implements Insertable<Reading> {
     if (!nullToAbsent || deviceLabel != null) {
       map['device_label'] = Variable<String>(deviceLabel);
     }
-    if (!nullToAbsent || notes != null) {
-      map['notes'] = Variable<String>(notes);
-    }
     if (!nullToAbsent || ocrConfidence != null) {
       map['ocr_confidence'] = Variable<double>(ocrConfidence);
     }
@@ -391,9 +366,6 @@ class Reading extends DataClass implements Insertable<Reading> {
       deviceLabel: deviceLabel == null && nullToAbsent
           ? const Value.absent()
           : Value(deviceLabel),
-      notes: notes == null && nullToAbsent
-          ? const Value.absent()
-          : Value(notes),
       ocrConfidence: ocrConfidence == null && nullToAbsent
           ? const Value.absent()
           : Value(ocrConfidence),
@@ -418,7 +390,6 @@ class Reading extends DataClass implements Insertable<Reading> {
         serializer.fromJson<String>(json['sourceType']),
       ),
       deviceLabel: serializer.fromJson<String?>(json['deviceLabel']),
-      notes: serializer.fromJson<String?>(json['notes']),
       ocrConfidence: serializer.fromJson<double?>(json['ocrConfidence']),
       isManuallyEdited: serializer.fromJson<bool>(json['isManuallyEdited']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
@@ -438,7 +409,6 @@ class Reading extends DataClass implements Insertable<Reading> {
         $ReadingsTable.$convertersourceType.toJson(sourceType),
       ),
       'deviceLabel': serializer.toJson<String?>(deviceLabel),
-      'notes': serializer.toJson<String?>(notes),
       'ocrConfidence': serializer.toJson<double?>(ocrConfidence),
       'isManuallyEdited': serializer.toJson<bool>(isManuallyEdited),
       'createdAt': serializer.toJson<DateTime>(createdAt),
@@ -454,7 +424,6 @@ class Reading extends DataClass implements Insertable<Reading> {
     Value<int?> pulse = const Value.absent(),
     ScannerType? sourceType,
     Value<String?> deviceLabel = const Value.absent(),
-    Value<String?> notes = const Value.absent(),
     Value<double?> ocrConfidence = const Value.absent(),
     bool? isManuallyEdited,
     DateTime? createdAt,
@@ -467,7 +436,6 @@ class Reading extends DataClass implements Insertable<Reading> {
     pulse: pulse.present ? pulse.value : this.pulse,
     sourceType: sourceType ?? this.sourceType,
     deviceLabel: deviceLabel.present ? deviceLabel.value : this.deviceLabel,
-    notes: notes.present ? notes.value : this.notes,
     ocrConfidence: ocrConfidence.present
         ? ocrConfidence.value
         : this.ocrConfidence,
@@ -490,7 +458,6 @@ class Reading extends DataClass implements Insertable<Reading> {
       deviceLabel: data.deviceLabel.present
           ? data.deviceLabel.value
           : this.deviceLabel,
-      notes: data.notes.present ? data.notes.value : this.notes,
       ocrConfidence: data.ocrConfidence.present
           ? data.ocrConfidence.value
           : this.ocrConfidence,
@@ -512,7 +479,6 @@ class Reading extends DataClass implements Insertable<Reading> {
           ..write('pulse: $pulse, ')
           ..write('sourceType: $sourceType, ')
           ..write('deviceLabel: $deviceLabel, ')
-          ..write('notes: $notes, ')
           ..write('ocrConfidence: $ocrConfidence, ')
           ..write('isManuallyEdited: $isManuallyEdited, ')
           ..write('createdAt: $createdAt')
@@ -530,7 +496,6 @@ class Reading extends DataClass implements Insertable<Reading> {
     pulse,
     sourceType,
     deviceLabel,
-    notes,
     ocrConfidence,
     isManuallyEdited,
     createdAt,
@@ -547,7 +512,6 @@ class Reading extends DataClass implements Insertable<Reading> {
           other.pulse == this.pulse &&
           other.sourceType == this.sourceType &&
           other.deviceLabel == this.deviceLabel &&
-          other.notes == this.notes &&
           other.ocrConfidence == this.ocrConfidence &&
           other.isManuallyEdited == this.isManuallyEdited &&
           other.createdAt == this.createdAt);
@@ -562,7 +526,6 @@ class ReadingsCompanion extends UpdateCompanion<Reading> {
   final Value<int?> pulse;
   final Value<ScannerType> sourceType;
   final Value<String?> deviceLabel;
-  final Value<String?> notes;
   final Value<double?> ocrConfidence;
   final Value<bool> isManuallyEdited;
   final Value<DateTime> createdAt;
@@ -575,7 +538,6 @@ class ReadingsCompanion extends UpdateCompanion<Reading> {
     this.pulse = const Value.absent(),
     this.sourceType = const Value.absent(),
     this.deviceLabel = const Value.absent(),
-    this.notes = const Value.absent(),
     this.ocrConfidence = const Value.absent(),
     this.isManuallyEdited = const Value.absent(),
     this.createdAt = const Value.absent(),
@@ -589,7 +551,6 @@ class ReadingsCompanion extends UpdateCompanion<Reading> {
     this.pulse = const Value.absent(),
     required ScannerType sourceType,
     this.deviceLabel = const Value.absent(),
-    this.notes = const Value.absent(),
     this.ocrConfidence = const Value.absent(),
     this.isManuallyEdited = const Value.absent(),
     this.createdAt = const Value.absent(),
@@ -604,7 +565,6 @@ class ReadingsCompanion extends UpdateCompanion<Reading> {
     Expression<int>? pulse,
     Expression<String>? sourceType,
     Expression<String>? deviceLabel,
-    Expression<String>? notes,
     Expression<double>? ocrConfidence,
     Expression<bool>? isManuallyEdited,
     Expression<DateTime>? createdAt,
@@ -618,7 +578,6 @@ class ReadingsCompanion extends UpdateCompanion<Reading> {
       if (pulse != null) 'pulse': pulse,
       if (sourceType != null) 'source_type': sourceType,
       if (deviceLabel != null) 'device_label': deviceLabel,
-      if (notes != null) 'notes': notes,
       if (ocrConfidence != null) 'ocr_confidence': ocrConfidence,
       if (isManuallyEdited != null) 'is_manually_edited': isManuallyEdited,
       if (createdAt != null) 'created_at': createdAt,
@@ -634,7 +593,6 @@ class ReadingsCompanion extends UpdateCompanion<Reading> {
     Value<int?>? pulse,
     Value<ScannerType>? sourceType,
     Value<String?>? deviceLabel,
-    Value<String?>? notes,
     Value<double?>? ocrConfidence,
     Value<bool>? isManuallyEdited,
     Value<DateTime>? createdAt,
@@ -648,7 +606,6 @@ class ReadingsCompanion extends UpdateCompanion<Reading> {
       pulse: pulse ?? this.pulse,
       sourceType: sourceType ?? this.sourceType,
       deviceLabel: deviceLabel ?? this.deviceLabel,
-      notes: notes ?? this.notes,
       ocrConfidence: ocrConfidence ?? this.ocrConfidence,
       isManuallyEdited: isManuallyEdited ?? this.isManuallyEdited,
       createdAt: createdAt ?? this.createdAt,
@@ -684,9 +641,6 @@ class ReadingsCompanion extends UpdateCompanion<Reading> {
     if (deviceLabel.present) {
       map['device_label'] = Variable<String>(deviceLabel.value);
     }
-    if (notes.present) {
-      map['notes'] = Variable<String>(notes.value);
-    }
     if (ocrConfidence.present) {
       map['ocr_confidence'] = Variable<double>(ocrConfidence.value);
     }
@@ -710,9 +664,362 @@ class ReadingsCompanion extends UpdateCompanion<Reading> {
           ..write('pulse: $pulse, ')
           ..write('sourceType: $sourceType, ')
           ..write('deviceLabel: $deviceLabel, ')
-          ..write('notes: $notes, ')
           ..write('ocrConfidence: $ocrConfidence, ')
           ..write('isManuallyEdited: $isManuallyEdited, ')
+          ..write('createdAt: $createdAt')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $ReadingTagsTable extends ReadingTags
+    with TableInfo<$ReadingTagsTable, ReadingTag> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $ReadingTagsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _readingIdMeta = const VerificationMeta(
+    'readingId',
+  );
+  @override
+  late final GeneratedColumn<int> readingId = GeneratedColumn<int>(
+    'reading_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _valueMeta = const VerificationMeta('value');
+  @override
+  late final GeneratedColumn<String> value = GeneratedColumn<String>(
+    'value',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _isSystemTagMeta = const VerificationMeta(
+    'isSystemTag',
+  );
+  @override
+  late final GeneratedColumn<bool> isSystemTag = GeneratedColumn<bool>(
+    'is_system_tag',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_system_tag" IN (0, 1))',
+    ),
+    defaultValue: const Constant(true),
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    readingId,
+    value,
+    isSystemTag,
+    createdAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'reading_tags';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<ReadingTag> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('reading_id')) {
+      context.handle(
+        _readingIdMeta,
+        readingId.isAcceptableOrUnknown(data['reading_id']!, _readingIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_readingIdMeta);
+    }
+    if (data.containsKey('value')) {
+      context.handle(
+        _valueMeta,
+        value.isAcceptableOrUnknown(data['value']!, _valueMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_valueMeta);
+    }
+    if (data.containsKey('is_system_tag')) {
+      context.handle(
+        _isSystemTagMeta,
+        isSystemTag.isAcceptableOrUnknown(
+          data['is_system_tag']!,
+          _isSystemTagMeta,
+        ),
+      );
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  ReadingTag map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return ReadingTag(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      readingId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}reading_id'],
+      )!,
+      value: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}value'],
+      )!,
+      isSystemTag: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_system_tag'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+    );
+  }
+
+  @override
+  $ReadingTagsTable createAlias(String alias) {
+    return $ReadingTagsTable(attachedDatabase, alias);
+  }
+}
+
+class ReadingTag extends DataClass implements Insertable<ReadingTag> {
+  final int id;
+  final int readingId;
+  final String value;
+  final bool isSystemTag;
+  final DateTime createdAt;
+  const ReadingTag({
+    required this.id,
+    required this.readingId,
+    required this.value,
+    required this.isSystemTag,
+    required this.createdAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['reading_id'] = Variable<int>(readingId);
+    map['value'] = Variable<String>(value);
+    map['is_system_tag'] = Variable<bool>(isSystemTag);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    return map;
+  }
+
+  ReadingTagsCompanion toCompanion(bool nullToAbsent) {
+    return ReadingTagsCompanion(
+      id: Value(id),
+      readingId: Value(readingId),
+      value: Value(value),
+      isSystemTag: Value(isSystemTag),
+      createdAt: Value(createdAt),
+    );
+  }
+
+  factory ReadingTag.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return ReadingTag(
+      id: serializer.fromJson<int>(json['id']),
+      readingId: serializer.fromJson<int>(json['readingId']),
+      value: serializer.fromJson<String>(json['value']),
+      isSystemTag: serializer.fromJson<bool>(json['isSystemTag']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'readingId': serializer.toJson<int>(readingId),
+      'value': serializer.toJson<String>(value),
+      'isSystemTag': serializer.toJson<bool>(isSystemTag),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+    };
+  }
+
+  ReadingTag copyWith({
+    int? id,
+    int? readingId,
+    String? value,
+    bool? isSystemTag,
+    DateTime? createdAt,
+  }) => ReadingTag(
+    id: id ?? this.id,
+    readingId: readingId ?? this.readingId,
+    value: value ?? this.value,
+    isSystemTag: isSystemTag ?? this.isSystemTag,
+    createdAt: createdAt ?? this.createdAt,
+  );
+  ReadingTag copyWithCompanion(ReadingTagsCompanion data) {
+    return ReadingTag(
+      id: data.id.present ? data.id.value : this.id,
+      readingId: data.readingId.present ? data.readingId.value : this.readingId,
+      value: data.value.present ? data.value.value : this.value,
+      isSystemTag: data.isSystemTag.present
+          ? data.isSystemTag.value
+          : this.isSystemTag,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ReadingTag(')
+          ..write('id: $id, ')
+          ..write('readingId: $readingId, ')
+          ..write('value: $value, ')
+          ..write('isSystemTag: $isSystemTag, ')
+          ..write('createdAt: $createdAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(id, readingId, value, isSystemTag, createdAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is ReadingTag &&
+          other.id == this.id &&
+          other.readingId == this.readingId &&
+          other.value == this.value &&
+          other.isSystemTag == this.isSystemTag &&
+          other.createdAt == this.createdAt);
+}
+
+class ReadingTagsCompanion extends UpdateCompanion<ReadingTag> {
+  final Value<int> id;
+  final Value<int> readingId;
+  final Value<String> value;
+  final Value<bool> isSystemTag;
+  final Value<DateTime> createdAt;
+  const ReadingTagsCompanion({
+    this.id = const Value.absent(),
+    this.readingId = const Value.absent(),
+    this.value = const Value.absent(),
+    this.isSystemTag = const Value.absent(),
+    this.createdAt = const Value.absent(),
+  });
+  ReadingTagsCompanion.insert({
+    this.id = const Value.absent(),
+    required int readingId,
+    required String value,
+    this.isSystemTag = const Value.absent(),
+    this.createdAt = const Value.absent(),
+  }) : readingId = Value(readingId),
+       value = Value(value);
+  static Insertable<ReadingTag> custom({
+    Expression<int>? id,
+    Expression<int>? readingId,
+    Expression<String>? value,
+    Expression<bool>? isSystemTag,
+    Expression<DateTime>? createdAt,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (readingId != null) 'reading_id': readingId,
+      if (value != null) 'value': value,
+      if (isSystemTag != null) 'is_system_tag': isSystemTag,
+      if (createdAt != null) 'created_at': createdAt,
+    });
+  }
+
+  ReadingTagsCompanion copyWith({
+    Value<int>? id,
+    Value<int>? readingId,
+    Value<String>? value,
+    Value<bool>? isSystemTag,
+    Value<DateTime>? createdAt,
+  }) {
+    return ReadingTagsCompanion(
+      id: id ?? this.id,
+      readingId: readingId ?? this.readingId,
+      value: value ?? this.value,
+      isSystemTag: isSystemTag ?? this.isSystemTag,
+      createdAt: createdAt ?? this.createdAt,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (readingId.present) {
+      map['reading_id'] = Variable<int>(readingId.value);
+    }
+    if (value.present) {
+      map['value'] = Variable<String>(value.value);
+    }
+    if (isSystemTag.present) {
+      map['is_system_tag'] = Variable<bool>(isSystemTag.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ReadingTagsCompanion(')
+          ..write('id: $id, ')
+          ..write('readingId: $readingId, ')
+          ..write('value: $value, ')
+          ..write('isSystemTag: $isSystemTag, ')
           ..write('createdAt: $createdAt')
           ..write(')'))
         .toString();
@@ -723,11 +1030,12 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
   late final $ReadingsTable readings = $ReadingsTable(this);
+  late final $ReadingTagsTable readingTags = $ReadingTagsTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
   @override
-  List<DatabaseSchemaEntity> get allSchemaEntities => [readings];
+  List<DatabaseSchemaEntity> get allSchemaEntities => [readings, readingTags];
 }
 
 typedef $$ReadingsTableCreateCompanionBuilder =
@@ -740,7 +1048,6 @@ typedef $$ReadingsTableCreateCompanionBuilder =
       Value<int?> pulse,
       required ScannerType sourceType,
       Value<String?> deviceLabel,
-      Value<String?> notes,
       Value<double?> ocrConfidence,
       Value<bool> isManuallyEdited,
       Value<DateTime> createdAt,
@@ -755,7 +1062,6 @@ typedef $$ReadingsTableUpdateCompanionBuilder =
       Value<int?> pulse,
       Value<ScannerType> sourceType,
       Value<String?> deviceLabel,
-      Value<String?> notes,
       Value<double?> ocrConfidence,
       Value<bool> isManuallyEdited,
       Value<DateTime> createdAt,
@@ -808,11 +1114,6 @@ class $$ReadingsTableFilterComposer
 
   ColumnFilters<String> get deviceLabel => $composableBuilder(
     column: $table.deviceLabel,
-    builder: (column) => ColumnFilters(column),
-  );
-
-  ColumnFilters<String> get notes => $composableBuilder(
-    column: $table.notes,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -881,11 +1182,6 @@ class $$ReadingsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
-  ColumnOrderings<String> get notes => $composableBuilder(
-    column: $table.notes,
-    builder: (column) => ColumnOrderings(column),
-  );
-
   ColumnOrderings<double> get ocrConfidence => $composableBuilder(
     column: $table.ocrConfidence,
     builder: (column) => ColumnOrderings(column),
@@ -942,9 +1238,6 @@ class $$ReadingsTableAnnotationComposer
     builder: (column) => column,
   );
 
-  GeneratedColumn<String> get notes =>
-      $composableBuilder(column: $table.notes, builder: (column) => column);
-
   GeneratedColumn<double> get ocrConfidence => $composableBuilder(
     column: $table.ocrConfidence,
     builder: (column) => column,
@@ -995,7 +1288,6 @@ class $$ReadingsTableTableManager
                 Value<int?> pulse = const Value.absent(),
                 Value<ScannerType> sourceType = const Value.absent(),
                 Value<String?> deviceLabel = const Value.absent(),
-                Value<String?> notes = const Value.absent(),
                 Value<double?> ocrConfidence = const Value.absent(),
                 Value<bool> isManuallyEdited = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
@@ -1008,7 +1300,6 @@ class $$ReadingsTableTableManager
                 pulse: pulse,
                 sourceType: sourceType,
                 deviceLabel: deviceLabel,
-                notes: notes,
                 ocrConfidence: ocrConfidence,
                 isManuallyEdited: isManuallyEdited,
                 createdAt: createdAt,
@@ -1023,7 +1314,6 @@ class $$ReadingsTableTableManager
                 Value<int?> pulse = const Value.absent(),
                 required ScannerType sourceType,
                 Value<String?> deviceLabel = const Value.absent(),
-                Value<String?> notes = const Value.absent(),
                 Value<double?> ocrConfidence = const Value.absent(),
                 Value<bool> isManuallyEdited = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
@@ -1036,7 +1326,6 @@ class $$ReadingsTableTableManager
                 pulse: pulse,
                 sourceType: sourceType,
                 deviceLabel: deviceLabel,
-                notes: notes,
                 ocrConfidence: ocrConfidence,
                 isManuallyEdited: isManuallyEdited,
                 createdAt: createdAt,
@@ -1063,10 +1352,208 @@ typedef $$ReadingsTableProcessedTableManager =
       Reading,
       PrefetchHooks Function()
     >;
+typedef $$ReadingTagsTableCreateCompanionBuilder =
+    ReadingTagsCompanion Function({
+      Value<int> id,
+      required int readingId,
+      required String value,
+      Value<bool> isSystemTag,
+      Value<DateTime> createdAt,
+    });
+typedef $$ReadingTagsTableUpdateCompanionBuilder =
+    ReadingTagsCompanion Function({
+      Value<int> id,
+      Value<int> readingId,
+      Value<String> value,
+      Value<bool> isSystemTag,
+      Value<DateTime> createdAt,
+    });
+
+class $$ReadingTagsTableFilterComposer
+    extends Composer<_$AppDatabase, $ReadingTagsTable> {
+  $$ReadingTagsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get readingId => $composableBuilder(
+    column: $table.readingId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get value => $composableBuilder(
+    column: $table.value,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isSystemTag => $composableBuilder(
+    column: $table.isSystemTag,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$ReadingTagsTableOrderingComposer
+    extends Composer<_$AppDatabase, $ReadingTagsTable> {
+  $$ReadingTagsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get readingId => $composableBuilder(
+    column: $table.readingId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get value => $composableBuilder(
+    column: $table.value,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get isSystemTag => $composableBuilder(
+    column: $table.isSystemTag,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$ReadingTagsTableAnnotationComposer
+    extends Composer<_$AppDatabase, $ReadingTagsTable> {
+  $$ReadingTagsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<int> get readingId =>
+      $composableBuilder(column: $table.readingId, builder: (column) => column);
+
+  GeneratedColumn<String> get value =>
+      $composableBuilder(column: $table.value, builder: (column) => column);
+
+  GeneratedColumn<bool> get isSystemTag => $composableBuilder(
+    column: $table.isSystemTag,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+}
+
+class $$ReadingTagsTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $ReadingTagsTable,
+          ReadingTag,
+          $$ReadingTagsTableFilterComposer,
+          $$ReadingTagsTableOrderingComposer,
+          $$ReadingTagsTableAnnotationComposer,
+          $$ReadingTagsTableCreateCompanionBuilder,
+          $$ReadingTagsTableUpdateCompanionBuilder,
+          (
+            ReadingTag,
+            BaseReferences<_$AppDatabase, $ReadingTagsTable, ReadingTag>,
+          ),
+          ReadingTag,
+          PrefetchHooks Function()
+        > {
+  $$ReadingTagsTableTableManager(_$AppDatabase db, $ReadingTagsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$ReadingTagsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$ReadingTagsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$ReadingTagsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<int> readingId = const Value.absent(),
+                Value<String> value = const Value.absent(),
+                Value<bool> isSystemTag = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+              }) => ReadingTagsCompanion(
+                id: id,
+                readingId: readingId,
+                value: value,
+                isSystemTag: isSystemTag,
+                createdAt: createdAt,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required int readingId,
+                required String value,
+                Value<bool> isSystemTag = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+              }) => ReadingTagsCompanion.insert(
+                id: id,
+                readingId: readingId,
+                value: value,
+                isSystemTag: isSystemTag,
+                createdAt: createdAt,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$ReadingTagsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $ReadingTagsTable,
+      ReadingTag,
+      $$ReadingTagsTableFilterComposer,
+      $$ReadingTagsTableOrderingComposer,
+      $$ReadingTagsTableAnnotationComposer,
+      $$ReadingTagsTableCreateCompanionBuilder,
+      $$ReadingTagsTableUpdateCompanionBuilder,
+      (
+        ReadingTag,
+        BaseReferences<_$AppDatabase, $ReadingTagsTable, ReadingTag>,
+      ),
+      ReadingTag,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
   $AppDatabaseManager(this._db);
   $$ReadingsTableTableManager get readings =>
       $$ReadingsTableTableManager(_db, _db.readings);
+  $$ReadingTagsTableTableManager get readingTags =>
+      $$ReadingTagsTableTableManager(_db, _db.readingTags);
 }
