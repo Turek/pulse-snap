@@ -1,19 +1,24 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pulse_snap/data/database/app_database.dart';
 import 'package:pulse_snap/domain/models/scan_result.dart';
+import 'package:pulse_snap/domain/tags/reading_with_tags.dart';
 import 'package:pulse_snap/features/dashboard/dashboard_provider.dart';
 
-Reading _r(DateTime at, {int sys = 120, int dia = 80, int pulse = 72}) =>
-    Reading(
-      id: at.millisecondsSinceEpoch ~/ 1000,
-      userId: 'default',
-      measuredAt: at,
-      systolic: sys,
-      diastolic: dia,
-      pulse: pulse,
-      sourceType: ScannerType.mlKit,
-      isManuallyEdited: false,
-      createdAt: at,
+ReadingWithTags _r(DateTime at,
+        {int sys = 120, int dia = 80, int pulse = 72}) =>
+    ReadingWithTags(
+      reading: Reading(
+        id: at.millisecondsSinceEpoch ~/ 1000,
+        userId: 'default',
+        measuredAt: at,
+        systolic: sys,
+        diastolic: dia,
+        pulse: pulse,
+        sourceType: ScannerType.mlKit,
+        isManuallyEdited: false,
+        createdAt: at,
+      ),
+      tags: const [],
     );
 
 void main() {
@@ -29,7 +34,7 @@ void main() {
   test('single reading → latest set, single-value averages', () {
     final s = computeStats([_r(now.subtract(const Duration(days: 1)))], now);
     expect(s.hasData, true);
-    expect(s.latest!.systolic, 120);
+    expect(s.latest!.reading.systolic, 120);
     expect(s.avgSys, 120);
     expect(s.avgDia, 80);
     expect(s.avgPulse, 72);
@@ -49,7 +54,7 @@ void main() {
       _r(now.subtract(const Duration(days: 1)), sys: 130),
       _r(now.subtract(const Duration(days: 5)), sys: 110),
     ], now);
-    expect(stats.latest!.systolic, 130);
+    expect(stats.latest!.reading.systolic, 130);
   });
 
   test('averages compute correctly over 3 readings', () {
@@ -69,6 +74,9 @@ void main() {
       _r(now.subtract(const Duration(days: 3)), sys: 130),
       _r(now.subtract(const Duration(days: 2)), sys: 110),
     ], now);
-    expect(s.last30Days.map((r) => r.systolic).toList(), [130, 110, 120]);
+    expect(
+      s.last30Days.map((r) => r.reading.systolic).toList(),
+      [130, 110, 120],
+    );
   });
 }

@@ -1,6 +1,5 @@
 import 'dart:io';
 
-import 'package:drift/drift.dart' show Value;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -10,6 +9,7 @@ import '../../core/widgets/action_bar.dart';
 import '../../core/widgets/back_or_home_button.dart';
 import '../../core/widgets/gemini_key_action.dart';
 import '../../core/widgets/status_pill.dart';
+import '../../core/widgets/tag_chip_row.dart';
 import '../../data/database/app_database.dart';
 import '../../domain/health/blood_pressure_status.dart';
 import '../../domain/health/heart_rate_status.dart';
@@ -84,7 +84,7 @@ class ReviewFormState extends ConsumerState<ReviewForm> {
   late final TextEditingController _sys;
   late final TextEditingController _dia;
   late final TextEditingController _pulse;
-  final _notes = TextEditingController();
+  final Set<String> _tags = <String>{};
   bool _saving = false;
 
   @override
@@ -103,7 +103,6 @@ class ReviewFormState extends ConsumerState<ReviewForm> {
     _sys.dispose();
     _dia.dispose();
     _pulse.dispose();
-    _notes.dispose();
     super.dispose();
   }
 
@@ -128,16 +127,22 @@ class ReviewFormState extends ConsumerState<ReviewForm> {
     final repo = ref.read(readingRepositoryProvider);
     final r = _current;
     try {
-      await repo.saveReading(ReadingsCompanion.insert(
-        measuredAt: DateTime.now(),
-        sourceType: r.source,
-        systolic: Value(r.systolic),
-        diastolic: Value(r.diastolic),
-        pulse: Value(r.pulse),
-        ocrConfidence: Value(r.confidence),
-        notes: _notes.text.isEmpty ? const Value.absent() : Value(_notes.text),
-        isManuallyEdited: Value(_wasEdited),
-      ));
+      final now = DateTime.now();
+      await repo.saveReading(
+        Reading(
+          id: 0,
+          userId: 'default',
+          measuredAt: now,
+          systolic: r.systolic,
+          diastolic: r.diastolic,
+          pulse: r.pulse,
+          sourceType: r.source,
+          ocrConfidence: r.confidence,
+          isManuallyEdited: _wasEdited,
+          createdAt: now,
+        ),
+        tags: _tags.toList(),
+      );
       try {
         if (await widget.imageFile.exists()) {
           await widget.imageFile.delete();
@@ -179,8 +184,6 @@ class ReviewFormState extends ConsumerState<ReviewForm> {
         : null;
     final hrStatus =
         r.pulse != null ? classifyHeartRate(bpm: r.pulse!) : null;
-    // Phase 1 placeholder — phase 2 will pipe real tags here.
-    const List<String> tags = <String>[];
     final lowConfidence = widget.initial.confidence < 0.75;
     final theme = Theme.of(context);
     final usedGemini = widget.initial.source == ScannerType.geminiFlash;
@@ -188,7 +191,7 @@ class ReviewFormState extends ConsumerState<ReviewForm> {
         hrStatus == HeartRateStatus.high ||
         hrStatus == HeartRateStatus.veryHigh;
     final hrAfterExercise = hrIsElevated &&
-        tags.any((t) => t.toLowerCase() == 'after exercise');
+        _tags.any((t) => t.toLowerCase() == 'after exercise');
 
     return Scaffold(
       appBar: AppBar(
@@ -335,13 +338,19 @@ class ReviewFormState extends ConsumerState<ReviewForm> {
                 ),
               ],
               const SizedBox(height: 16),
-              TextField(
-                controller: _notes,
-                decoration: const InputDecoration(
-                  labelText: 'Notes',
-                  border: OutlineInputBorder(),
-                ),
-                maxLines: 2,
+              Text('TAGS', style: theme.textTheme.labelMedium?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+                fontWeight: FontWeight.w500,
+                letterSpacing: 0.4,
+              )),
+              const SizedBox(height: 8),
+              TagChipRow(
+                selected: _tags,
+                onChanged: (next) => setState(() {
+                  _tags
+                    ..clear()
+                    ..addAll(next);
+                }),
               ),
               const SizedBox(height: 16),
               ExpansionTile(

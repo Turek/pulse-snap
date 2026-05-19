@@ -1,4 +1,3 @@
-import 'package:drift/drift.dart' show Value;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -10,13 +9,13 @@ import '../../core/theme/vital_colors.dart';
 import '../../core/widgets/gemini_key_action.dart';
 import '../../core/widgets/skeleton.dart';
 import '../../core/widgets/tinted_card.dart';
-import '../../data/database/app_database.dart';
+import '../../domain/tags/reading_with_tags.dart';
 import '../../providers.dart';
 import 'history_provider.dart';
 import 'widgets/reading_list_tile.dart';
 
 /// Merged Calendar + History screen. The two-week calendar acts as the
-/// date filter; the search bar narrows within the selected day's notes.
+/// date filter; the search bar narrows within the selected day's tags.
 /// Reading list lives below, swipe-to-delete with undo.
 class HistoryScreen extends ConsumerStatefulWidget {
   const HistoryScreen({super.key});
@@ -75,7 +74,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                     ref.read(historySearchProvider.notifier).set(v),
                 decoration: InputDecoration(
                   prefixIcon: const Icon(Icons.search),
-                  hintText: 'Search notes…',
+                  hintText: 'Search tags…',
                   filled: true,
                   fillColor: scheme.surfaceContainerHighest
                       .withValues(alpha: 0.5),
@@ -101,7 +100,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
               TintedCard(
                 accent: SectionAccent.sky,
                 padding: const EdgeInsets.fromLTRB(6, 4, 6, 6),
-                child: TableCalendar<Reading>(
+                child: TableCalendar<ReadingWithTags>(
                   firstDay: DateTime(2020),
                   lastDay: DateTime.now().add(const Duration(days: 365)),
                   focusedDay: _focusedDay,
@@ -183,7 +182,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                     markersAlignment: Alignment.bottomCenter,
                     markersOffset: const PositionedOffset(bottom: 2),
                   ),
-                  calendarBuilders: CalendarBuilders<Reading>(
+                  calendarBuilders: CalendarBuilders<ReadingWithTags>(
                     markerBuilder: (context, day, events) {
                       if (events.isEmpty) return null;
                       final status = worstBpStatusOfDay(events);
@@ -217,7 +216,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                     child: Text(
                       search.isEmpty
                           ? 'No readings on this day'
-                          : 'No notes match "$search"',
+                          : 'No tags match "$search"',
                       style: theme.textTheme.bodyMedium?.copyWith(
                         color: scheme.onSurfaceVariant,
                       ),
@@ -228,7 +227,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                 for (var i = 0; i < dayList.length; i++) ...[
                   if (i > 0) const SizedBox(height: 8),
                   Dismissible(
-                    key: ValueKey(dayList[i].id),
+                    key: ValueKey(dayList[i].reading.id),
                     background: Container(
                       decoration: BoxDecoration(
                         color: Colors.red.withValues(alpha: 0.85),
@@ -242,9 +241,9 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                     onDismissed: (_) =>
                         _confirmDelete(context, ref, dayList[i]),
                     child: ReadingListTile(
-                      reading: dayList[i],
+                      readingWithTags: dayList[i],
                       onTap: () =>
-                          context.push('/history/${dayList[i].id}'),
+                          context.push('/history/${dayList[i].reading.id}'),
                     ),
                   ),
                 ],
@@ -255,8 +254,11 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
     );
   }
 
-  void _confirmDelete(BuildContext context, WidgetRef ref, Reading r) {
+  void _confirmDelete(
+      BuildContext context, WidgetRef ref, ReadingWithTags rt) {
     final repo = ref.read(readingRepositoryProvider);
+    final r = rt.reading;
+    final tags = List<String>.from(rt.tags);
     repo.deleteReading(r.id);
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -264,16 +266,8 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
         action: SnackBarAction(
           label: 'Undo',
           onPressed: () {
-            repo.saveReading(ReadingsCompanion.insert(
-              measuredAt: r.measuredAt,
-              sourceType: r.sourceType,
-              systolic: Value(r.systolic),
-              diastolic: Value(r.diastolic),
-              pulse: Value(r.pulse),
-              notes: Value(r.notes),
-              ocrConfidence: Value(r.ocrConfidence),
-              isManuallyEdited: Value(r.isManuallyEdited),
-            ));
+            // id <= 0 lets the repository assign a fresh id.
+            repo.saveReading(r.copyWith(id: 0), tags: tags);
           },
         ),
       ),

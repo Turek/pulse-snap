@@ -4,6 +4,7 @@ import 'data/database/app_database.dart';
 import 'data/repositories/reading_repository.dart';
 import 'domain/repositories/i_reading_repository.dart';
 import 'domain/scanner/scan_orchestrator.dart';
+import 'domain/tags/reading_with_tags.dart';
 
 final appDatabaseProvider = Provider<AppDatabase>((ref) {
   final db = AppDatabase();
@@ -21,12 +22,12 @@ final scanOrchestratorProvider = Provider<ScanOrchestrator>((ref) {
   return orch;
 });
 
-final readingsProvider = StreamProvider<List<Reading>>((ref) {
-  return ref.watch(readingRepositoryProvider).watchAllReadings();
+final readingsProvider = StreamProvider<List<ReadingWithTags>>((ref) {
+  return ref.watch(readingRepositoryProvider).watchAllReadingsWithTags();
 });
 
-final latestReadingProvider = FutureProvider<Reading?>((ref) {
-  // Recompute when the list changes.
-  ref.watch(readingsProvider);
-  return ref.watch(readingRepositoryProvider).getLatestReading();
+final latestReadingProvider = FutureProvider<ReadingWithTags?>((ref) async {
+  final list = await ref.watch(readingsProvider.future);
+  if (list.isEmpty) return null;
+  return list.first;
 });

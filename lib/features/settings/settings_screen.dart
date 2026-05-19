@@ -1,4 +1,3 @@
-import 'package:drift/drift.dart' show Value;
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -35,13 +34,18 @@ class SettingsScreen extends ConsumerWidget {
                 final repo = ref.read(readingRepositoryProvider);
                 final now = DateTime.now();
                 for (var i = 0; i < 30; i++) {
-                  await repo.saveReading(ReadingsCompanion.insert(
-                    measuredAt: now.subtract(Duration(days: i)),
+                  final at = now.subtract(Duration(days: i));
+                  await repo.saveReading(Reading(
+                    id: 0,
+                    userId: 'default',
+                    measuredAt: at,
                     sourceType: ScannerType.mlKit,
-                    systolic: Value(110 + (i % 6) * 5),
-                    diastolic: Value(70 + (i % 5) * 4),
-                    pulse: Value(65 + (i % 7) * 3),
-                    ocrConfidence: const Value(0.9),
+                    systolic: 110 + (i % 6) * 5,
+                    diastolic: 70 + (i % 5) * 4,
+                    pulse: 65 + (i % 7) * 3,
+                    ocrConfidence: 0.9,
+                    isManuallyEdited: false,
+                    createdAt: at,
                   ));
                 }
                 if (context.mounted) {

@@ -8,6 +8,7 @@ import '../../core/theme/vital_colors.dart';
 import '../../core/widgets/action_bar.dart';
 import '../../core/widgets/back_or_home_button.dart';
 import '../../core/widgets/status_pill.dart';
+import '../../core/widgets/tag_chip_row.dart';
 import '../../core/widgets/tinted_card.dart';
 import '../../data/database/app_database.dart';
 import '../../domain/health/blood_pressure_status.dart';
@@ -15,17 +16,14 @@ import '../../domain/health/heart_rate_status.dart';
 import '../../domain/health/severity_level.dart';
 import '../../domain/health/vital_classifiers.dart';
 import '../../domain/models/scan_result.dart';
+import '../../domain/tags/reading_with_tags.dart';
 import '../../providers.dart';
 
 final _readingByIdProvider =
-    FutureProvider.family<Reading?, int>((ref, id) async {
+    FutureProvider.family<ReadingWithTags?, int>((ref, id) async {
+  // Re-fetch when the underlying stream emits.
   ref.watch(readingsProvider);
-  final list =
-      await ref.read(readingRepositoryProvider).watchAllReadings().first;
-  for (final r in list) {
-    if (r.id == id) return r;
-  }
-  return null;
+  return ref.read(readingRepositoryProvider).getReadingWithTags(id);
 });
 
 class ReadingDetailScreen extends ConsumerWidget {
@@ -45,15 +43,17 @@ class ReadingDetailScreen extends ConsumerWidget {
         error: (e, _) => Center(child: Text('Failed: $e')),
         data: (r) => r == null
             ? const Center(child: Text('Not found.'))
-            : _Body(reading: r),
+            : _Body(readingWithTags: r),
       ),
     );
   }
 }
 
 class _Body extends ConsumerStatefulWidget {
-  final Reading reading;
-  const _Body({required this.reading});
+  final ReadingWithTags readingWithTags;
+  const _Body({required this.readingWithTags});
+
+  Reading get reading => readingWithTags.reading;
 
   @override
   ConsumerState<_Body> createState() => _BodyState();
@@ -64,21 +64,22 @@ class _BodyState extends ConsumerState<_Body> {
   late TextEditingController _sys;
   late TextEditingController _dia;
   late TextEditingController _pulse;
-  late TextEditingController _notes;
   late DateTime _measuredAt;
+  late Set<String> _tags;
 
   @override
   void initState() {
     super.initState();
-    _hydrate(widget.reading);
+    _hydrate(widget.readingWithTags);
   }
 
-  void _hydrate(Reading r) {
+  void _hydrate(ReadingWithTags rt) {
+    final r = rt.reading;
     _sys = TextEditingController(text: r.systolic?.toString() ?? '');
     _dia = TextEditingController(text: r.diastolic?.toString() ?? '');
     _pulse = TextEditingController(text: r.pulse?.toString() ?? '');
-    _notes = TextEditingController(text: r.notes ?? '');
     _measuredAt = r.measuredAt;
+    _tags = {...rt.tags};
   }
 
   @override
@@ -86,7 +87,6 @@ class _BodyState extends ConsumerState<_Body> {
     _sys.dispose();
     _dia.dispose();
     _pulse.dispose();
-    _notes.dispose();
     super.dispose();
   }
 
@@ -119,24 +119,27 @@ class _BodyState extends ConsumerState<_Body> {
       systolic: Value(int.tryParse(_sys.text)),
       diastolic: Value(int.tryParse(_dia.text)),
       pulse: Value(int.tryParse(_pulse.text)),
-      notes: Value(_notes.text.isEmpty ? null : _notes.text),
       measuredAt: _measuredAt,
       // Any edit means the source attribution is "manual" — the OCR
       // engine no longer owns this row.
       sourceType: ScannerType.manual,
       isManuallyEdited: true,
     );
-    await ref.read(readingRepositoryProvider).updateReading(updated);
+    final tagList = _tags.toList();
+    await ref.read(readingRepositoryProvider).updateReading(
+          updated,
+          tags: tagList,
+        );
     if (!mounted) return;
     setState(() {
-      _hydrate(updated);
+      _hydrate(ReadingWithTags(reading: updated, tags: tagList));
       _editing = false;
     });
   }
 
   void _cancelEdit() {
     setState(() {
-      _hydrate(widget.reading);
+      _hydrate(widget.readingWithTags);
       _editing = false;
     });
   }
@@ -300,25 +303,51 @@ class _BodyState extends ConsumerState<_Body> {
           ),
           const SizedBox(height: 24),
 
-          // NOTES
-          Text('NOTES', style: sectionStyle),
+          // TAGS
+          Text('TAGS', style: sectionStyle),
           const SizedBox(height: 8),
           TintedCard(
             accent: SectionAccent.slate,
-            padding: const EdgeInsets.fromLTRB(8, 4, 8, 4),
-            child: TextField(
-              controller: _notes,
-              enabled: _editing,
-              maxLines: 3,
-              minLines: 2,
-              decoration: InputDecoration(
-                hintText: _editing ? 'Add a note…' : null,
-                border: InputBorder.none,
-                contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 8, vertical: 8),
-              ),
-              style: theme.textTheme.bodyMedium,
-            ),
+            padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
+            child: _editing
+                ? TagChipRow(
+                    selected: _tags,
+                    onChanged: (next) => setState(() {
+                      _tags
+                        ..clear()
+                        ..addAll(next);
+                    }),
+                  )
+                : _tags.isEmpty
+                    ? Text(
+                        'No tags',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: scheme.onSurfaceVariant,
+                        ),
+                      )
+                    : Wrap(
+                        spacing: 6,
+                        runSpacing: 6,
+                        children: [
+                          for (final tag in _tags)
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 10, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: scheme.surfaceContainerHighest
+                                    .withValues(alpha: 0.6),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Text(
+                                tag,
+                                style:
+                                    theme.textTheme.labelMedium?.copyWith(
+                                  color: scheme.onSurfaceVariant,
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
           ),
           const SizedBox(height: 24),
         ],
