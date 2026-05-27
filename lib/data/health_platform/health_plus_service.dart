@@ -38,6 +38,7 @@ class HealthFacade {
     required HealthDataType type,
     required DateTime startTime,
     String? clientRecordId,
+    double? clientRecordVersion,
     DateTime? endTime,
     RecordingMethod recordingMethod = RecordingMethod.manual,
   }) =>
@@ -46,6 +47,7 @@ class HealthFacade {
         type: type,
         startTime: startTime,
         clientRecordId: clientRecordId,
+        clientRecordVersion: clientRecordVersion,
         endTime: endTime,
         recordingMethod: recordingMethod,
       );
@@ -60,6 +62,7 @@ class HealthFacade {
     required int diastolic,
     required DateTime startTime,
     String? clientRecordId,
+    double? clientRecordVersion,
     RecordingMethod recordingMethod = RecordingMethod.manual,
   }) =>
       _health.writeBloodPressure(
@@ -67,6 +70,7 @@ class HealthFacade {
         diastolic: diastolic,
         startTime: startTime,
         clientRecordId: clientRecordId,
+        clientRecordVersion: clientRecordVersion,
         recordingMethod: recordingMethod,
       );
 }
@@ -141,18 +145,24 @@ class HealthPlusService implements IHealthPlatformService {
 
     await _facade.ensureConfigured();
 
+    // Health Connect only honours a clientRecordId when a clientRecordVersion
+    // is also supplied, and it overwrites an existing client record only when
+    // the incoming version is higher. Using the current time as the version
+    // makes each write win, so re-syncs upsert (no duplicates) and edits to a
+    // reading propagate to the existing record.
+    final version = DateTime.now().millisecondsSinceEpoch.toDouble();
+
     if (r.systolic != null && r.diastolic != null) {
       // Health Connect stores blood pressure as a single BloodPressureRecord —
       // systolic and diastolic must be written together. Writing them as
       // separate data points does not produce a valid BP record on Android.
-      // A stable clientRecordId makes the write an idempotent upsert, so a
-      // re-sync of the same reading updates rather than duplicates.
       attempted = true;
       final bpOk = await _facade.writeBloodPressure(
         systolic: r.systolic!,
         diastolic: r.diastolic!,
         startTime: ts,
         clientRecordId: 'pulsesnap-bp-${r.id}',
+        clientRecordVersion: version,
       );
       allOk = allOk && bpOk;
     }
@@ -164,6 +174,7 @@ class HealthPlusService implements IHealthPlatformService {
         type: HealthDataType.HEART_RATE,
         startTime: ts,
         clientRecordId: 'pulsesnap-hr-${r.id}',
+        clientRecordVersion: version,
       );
       allOk = allOk && hrOk;
     }
