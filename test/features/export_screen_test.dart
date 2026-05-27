@@ -49,7 +49,7 @@ void main() {
         ExportRangePreset.last7Days);
 
     // Tap the 14 days preset.
-    await tester.tap(find.text('Last 14 days'));
+    await tester.tap(find.text('14 days'));
     await tester.pumpAndSettle();
 
     final updated = container.read(exportOptionsProvider);
