@@ -99,6 +99,18 @@ class _BodyState extends ConsumerState<_Body> {
       lastDate: DateTime.now().add(const Duration(days: 1)),
     );
     if (date == null || !mounted) return;
+    setState(() {
+      _measuredAt = DateTime(
+        date.year,
+        date.month,
+        date.day,
+        _measuredAt.hour,
+        _measuredAt.minute,
+      );
+    });
+  }
+
+  Future<void> _pickTime() async {
     final time = await showTimePicker(
       context: context,
       initialTime: TimeOfDay.fromDateTime(_measuredAt),
@@ -106,9 +118,9 @@ class _BodyState extends ConsumerState<_Body> {
     if (time == null || !mounted) return;
     setState(() {
       _measuredAt = DateTime(
-        date.year,
-        date.month,
-        date.day,
+        _measuredAt.year,
+        _measuredAt.month,
+        _measuredAt.day,
         time.hour,
         time.minute,
       );
@@ -286,22 +298,57 @@ class _BodyState extends ConsumerState<_Body> {
           const SizedBox(height: 8),
           TintedCard(
             accent: SectionAccent.slate,
-            padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
-            onTap: _editing ? _pickDate : null,
+            padding: const EdgeInsets.fromLTRB(8, 4, 8, 4),
             child: Row(
               children: [
-                Icon(Icons.event,
-                    size: 18, color: scheme.onSurfaceVariant),
-                const SizedBox(width: 10),
                 Expanded(
-                  child: Text(
-                    DateFormat('EEE, d MMM yyyy   HH:mm').format(_measuredAt),
-                    style: theme.textTheme.titleSmall,
+                  child: InkWell(
+                    onTap: _editing ? _pickDate : null,
+                    borderRadius: BorderRadius.circular(12),
+                    child: Padding(
+                      padding:
+                          const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+                      child: Row(
+                        children: [
+                          Icon(Icons.event,
+                              size: 18, color: scheme.onSurfaceVariant),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              DateFormat('EEE, d MMM yyyy').format(_measuredAt),
+                              style: theme.textTheme.titleSmall,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
                 ),
-                if (_editing)
-                  Icon(Icons.edit_calendar,
-                      size: 18, color: scheme.onSurfaceVariant),
+                Container(
+                  width: 1,
+                  height: 28,
+                  color: scheme.outlineVariant,
+                ),
+                InkWell(
+                  onTap: _editing ? _pickTime : null,
+                  borderRadius: BorderRadius.circular(12),
+                  child: Padding(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    child: Row(
+                      children: [
+                        Icon(Icons.schedule,
+                            size: 18, color: scheme.onSurfaceVariant),
+                        const SizedBox(width: 8),
+                        Text(
+                          DateFormat('HH:mm').format(_measuredAt),
+                          style: theme.textTheme.titleSmall,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
               ],
             ),
           ),

@@ -16,7 +16,7 @@ class TintedCard extends StatelessWidget {
     required this.accent,
     required this.child,
     this.padding = const EdgeInsets.all(16),
-    this.radius = 20,
+    this.radius = 16,
     this.onTap,
   });
 
@@ -57,16 +57,17 @@ class TintedCard extends StatelessWidget {
 
 /// Semantic accent colour palette used by [TintedCard] across the app.
 /// Pick by what the section *means*, not by what colour you want today.
+/// Tokens align with the DESIGN.md brand palette.
 class SectionAccent {
-  /// Primary brand / sky blue — main hero surfaces, charts, calendars.
-  static const sky = Color(0xFF1B6CA8);
+  /// Primary brand periwinkle — calendars, hero surfaces.
+  static const sky = Color(0xFF6B5EAE);
 
-  /// Health-positive green — averages, healthy states.
-  static const health = Color(0xFF2E9A6E);
+  /// Tertiary sage — averages, healthy-state cards.
+  static const health = Color(0xFF49A17A);
 
-  /// Warm sand / amber — calendar selected day, secondary highlights.
-  static const sand = Color(0xFFD2A85B);
+  /// Secondary dusty rose — accents for warm/secondary surfaces.
+  static const sand = Color(0xFF944A6B);
 
-  /// Neutral slate — list rows, dense data.
-  static const slate = Color(0xFF6B7B8C);
+  /// Neutral slate — list rows, dense data backgrounds.
+  static const slate = Color(0xFF79747E);
 }

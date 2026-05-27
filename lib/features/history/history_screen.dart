@@ -5,13 +5,16 @@ import 'package:intl/intl.dart';
 import 'package:table_calendar/table_calendar.dart';
 
 import '../../core/extensions/datetime_extensions.dart';
+import '../../core/theme/app_theme.dart';
 import '../../core/theme/vital_colors.dart';
 import '../../core/widgets/gemini_key_action.dart';
 import '../../core/widgets/skeleton.dart';
 import '../../core/widgets/tinted_card.dart';
+import '../../domain/health/blood_pressure_status.dart';
 import '../../domain/tags/reading_with_tags.dart';
 import '../../providers.dart';
 import 'history_provider.dart';
+import 'widgets/calendar_heatmap_cell.dart';
 import 'widgets/reading_list_tile.dart';
 
 /// Merged Calendar + History screen. The two-week calendar acts as the
@@ -42,11 +45,7 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
     final search = ref.watch(historySearchProvider);
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
-    final sectionStyle = theme.textTheme.labelLarge?.copyWith(
-      color: scheme.onSurfaceVariant,
-      fontWeight: FontWeight.w500,
-      letterSpacing: 0.4,
-    );
+    final sectionStyle = AppTextStyles.sectionCaps(context);
 
     return Scaffold(
       appBar: AppBar(
@@ -99,14 +98,14 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
               const SizedBox(height: 12),
               TintedCard(
                 accent: scheme.primary,
-                padding: const EdgeInsets.fromLTRB(6, 4, 6, 6),
+                padding: const EdgeInsets.fromLTRB(6, 4, 6, 10),
                 child: TableCalendar<ReadingWithTags>(
                   firstDay: DateTime(2020),
                   lastDay: DateTime.now().add(const Duration(days: 365)),
                   focusedDay: _focusedDay,
                   calendarFormat: _format,
-                  rowHeight: 36,
-                  daysOfWeekHeight: 18,
+                  rowHeight: 44,
+                  daysOfWeekHeight: 20,
                   availableCalendarFormats: const {
                     CalendarFormat.month: 'Month',
                     CalendarFormat.twoWeeks: '2w',
@@ -124,7 +123,8 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                     titleCentered: true,
                     formatButtonShowsNext: false,
                     headerPadding: const EdgeInsets.symmetric(vertical: 4),
-                    titleTextStyle: theme.textTheme.titleSmall ?? const TextStyle(),
+                    titleTextStyle:
+                        theme.textTheme.titleSmall ?? const TextStyle(),
                     leftChevronPadding: const EdgeInsets.all(4),
                     rightChevronPadding: const EdgeInsets.all(4),
                     leftChevronIcon: Icon(Icons.chevron_left,
@@ -152,63 +152,38 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
                         ) ??
                         const TextStyle(),
                   ),
-                  calendarStyle: CalendarStyle(
-                    cellMargin: const EdgeInsets.all(2),
+                  calendarStyle: const CalendarStyle(
+                    cellMargin: EdgeInsets.all(3),
                     cellPadding: EdgeInsets.zero,
-                    defaultTextStyle: theme.textTheme.bodySmall ?? const TextStyle(),
-                    weekendTextStyle: theme.textTheme.bodySmall ?? const TextStyle(),
-                    outsideTextStyle: theme.textTheme.bodySmall?.copyWith(
-                          color: scheme.onSurfaceVariant
-                              .withValues(alpha: 0.45),
-                        ) ??
-                        const TextStyle(),
-                    selectedTextStyle: theme.textTheme.bodySmall?.copyWith(
-                          color: scheme.onPrimaryContainer,
-                          fontWeight: FontWeight.w600,
-                        ) ??
-                        const TextStyle(),
-                    todayTextStyle: theme.textTheme.bodySmall?.copyWith(
-                          fontWeight: FontWeight.w600,
-                          color: scheme.onPrimaryContainer,
-                        ) ??
-                        const TextStyle(),
-                    selectedDecoration: BoxDecoration(
-                      color: scheme.primaryContainer,
-                      shape: BoxShape.circle,
-                      border: Border.all(color: scheme.primary, width: 1.5),
-                    ),
-                    todayDecoration: BoxDecoration(
-                      color: scheme.primaryContainer.withValues(alpha: 0.45),
-                      shape: BoxShape.circle,
-                    ),
-                    markersAlignment: Alignment.bottomCenter,
-                    markersOffset: const PositionedOffset(bottom: 2),
+                    outsideDaysVisible: true,
+                    markersMaxCount: 0,
                   ),
                   calendarBuilders: CalendarBuilders<ReadingWithTags>(
-                    markerBuilder: (context, day, events) {
-                      if (events.isEmpty) return null;
-                      final status = worstBpStatusOfDay(events);
-                      final color = status == null
-                          ? scheme.onSurfaceVariant
-                          : bpStatusColor(status);
-                      // Outline matches the cell background so the dot
-                      // doesn't blend into the today/selected ring stroke.
-                      return Container(
-                        width: 7,
-                        height: 7,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: color,
-                          border: Border.all(
-                            color: scheme.surface,
-                            width: 1.2,
-                          ),
-                        ),
-                      );
-                    },
+                    defaultBuilder: (context, day, _) => CalendarHeatmapCell(
+                      day: day,
+                      events: byDay[day.startOfDay] ?? const [],
+                      state: HeatmapCellState.normal,
+                    ),
+                    todayBuilder: (context, day, _) => CalendarHeatmapCell(
+                      day: day,
+                      events: byDay[day.startOfDay] ?? const [],
+                      state: HeatmapCellState.today,
+                    ),
+                    selectedBuilder: (context, day, _) => CalendarHeatmapCell(
+                      day: day,
+                      events: byDay[day.startOfDay] ?? const [],
+                      state: HeatmapCellState.selected,
+                    ),
+                    outsideBuilder: (context, day, _) => CalendarHeatmapCell(
+                      day: day,
+                      events: const [],
+                      state: HeatmapCellState.outside,
+                    ),
                   ),
                 ),
               ),
+              const SizedBox(height: 10),
+              const _HeatmapLegend(),
               const SizedBox(height: 20),
               Text(
                 DateFormat('EEEE, d MMM').format(_selectedDay).toUpperCase(),
@@ -278,6 +253,61 @@ class _HistoryScreenState extends ConsumerState<HistoryScreen> {
           },
         ),
       ),
+    );
+  }
+}
+
+/// Compact legend strip shown under the heatmap calendar.
+class _HeatmapLegend extends StatelessWidget {
+  const _HeatmapLegend();
+
+  static const _items = <BloodPressureStatus>[
+    BloodPressureStatus.normal,
+    BloodPressureStatus.elevated,
+    BloodPressureStatus.highStage1,
+    BloodPressureStatus.highStage2,
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    return Wrap(
+      spacing: 12,
+      runSpacing: 6,
+      children: _items.map((s) {
+        final color = bpStatusColor(s);
+        return Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 12,
+              height: 12,
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.18),
+                borderRadius: BorderRadius.circular(3),
+              ),
+              alignment: Alignment.bottomRight,
+              child: Container(
+                width: 4,
+                height: 4,
+                margin: const EdgeInsets.only(right: 1, bottom: 1),
+                decoration: BoxDecoration(
+                  color: color,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            const SizedBox(width: 6),
+            Text(
+              s.label,
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: scheme.onSurfaceVariant,
+              ),
+            ),
+          ],
+        );
+      }).toList(),
     );
   }
 }
