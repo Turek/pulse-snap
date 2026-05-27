@@ -1,5 +1,6 @@
 # Minimum iOS version required by the google_mlkit_* (OCR) plugins.
-platform :ios, '15.5'
+MIN_IOS_VERSION = '15.5'
+platform :ios, MIN_IOS_VERSION
 
 # CocoaPods analytics sends network stats synchronously affecting flutter build latency.
 ENV['COCOAPODS_DISABLE_STATS'] = 'true'
@@ -41,8 +42,8 @@ post_install do |installer|
     flutter_additional_ios_build_settings(target)
     target.build_configurations.each do |config|
       # Keep every pod at the project's minimum so none falls back below the
-      # 15.5 floor that google_mlkit_* requires.
-      config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '15.5'
+      # floor that google_mlkit_* requires.
+      config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = MIN_IOS_VERSION
     end
   end
 end
