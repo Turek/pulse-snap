@@ -35,10 +35,12 @@ class _FakeHealthFacade extends HealthFacade {
     required HealthDataType type,
     required DateTime startTime,
     String? clientRecordId,
+    double? clientRecordVersion,
     DateTime? endTime,
     RecordingMethod recordingMethod = RecordingMethod.manual,
   }) async {
-    writes.add(_Write(type, value, startTime, clientRecordId));
+    writes.add(_Write(type, value, startTime, clientRecordId,
+        clientRecordVersion));
     return hrWriteOk;
   }
 
@@ -48,9 +50,11 @@ class _FakeHealthFacade extends HealthFacade {
     required int diastolic,
     required DateTime startTime,
     String? clientRecordId,
+    double? clientRecordVersion,
     RecordingMethod recordingMethod = RecordingMethod.manual,
   }) async {
-    bpWrites.add(_BpWrite(systolic, diastolic, startTime, clientRecordId));
+    bpWrites.add(_BpWrite(systolic, diastolic, startTime, clientRecordId,
+        clientRecordVersion));
     return true;
   }
 
@@ -65,7 +69,9 @@ class _Write {
   final double value;
   final DateTime startTime;
   final String? clientRecordId;
-  _Write(this.type, this.value, this.startTime, this.clientRecordId);
+  final double? clientRecordVersion;
+  _Write(this.type, this.value, this.startTime, this.clientRecordId,
+      this.clientRecordVersion);
 }
 
 class _BpWrite {
@@ -73,7 +79,9 @@ class _BpWrite {
   final int diastolic;
   final DateTime startTime;
   final String? clientRecordId;
-  _BpWrite(this.systolic, this.diastolic, this.startTime, this.clientRecordId);
+  final double? clientRecordVersion;
+  _BpWrite(this.systolic, this.diastolic, this.startTime, this.clientRecordId,
+      this.clientRecordVersion);
 }
 
 ReadingWithTags _r({
@@ -113,14 +121,17 @@ void main() {
     expect(fake.bpWrites.single.systolic, 128);
     expect(fake.bpWrites.single.diastolic, 82);
     expect(fake.bpWrites.single.startTime, reading.reading.measuredAt);
-    // Stable client-record id makes the BP write an idempotent upsert.
+    // Stable client-record id + a version make the BP write an idempotent
+    // upsert; Health Connect ignores the id unless a version is also sent.
     expect(fake.bpWrites.single.clientRecordId, 'pulsesnap-bp-1');
+    expect(fake.bpWrites.single.clientRecordVersion, isNotNull);
     // Heart rate: one writeHealthData call.
     expect(fake.writes.length, 1);
     expect(fake.writes.single.type, HealthDataType.HEART_RATE);
     expect(fake.writes.single.value, 70);
     expect(fake.writes.single.startTime, reading.reading.measuredAt);
     expect(fake.writes.single.clientRecordId, 'pulsesnap-hr-1');
+    expect(fake.writes.single.clientRecordVersion, isNotNull);
   });
 
   test('null pulse skips HR write', () async {
