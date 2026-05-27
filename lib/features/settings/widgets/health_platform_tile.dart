@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
+import '../../../core/widgets/app_buttons.dart';
 import '../health_platform_provider.dart';
 
 class HealthPlatformTile extends ConsumerWidget {
@@ -83,7 +84,8 @@ class _Body extends ConsumerWidget {
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
             child: Row(
               children: [
-                FilledButton.tonal(
+                SecondaryButton(
+                  label: 'Sync now',
                   onPressed: () {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
@@ -93,12 +95,11 @@ class _Body extends ConsumerWidget {
                       ),
                     );
                   },
-                  child: const Text('Sync now'),
                 ),
                 const SizedBox(width: 8),
-                TextButton(
+                TextActionButton(
+                  label: 'Disconnect',
                   onPressed: () => notifier.disconnect(),
-                  child: const Text('Disconnect'),
                 ),
               ],
             ),

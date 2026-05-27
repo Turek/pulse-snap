@@ -1,6 +1,5 @@
 import 'dart:io';
 
-import 'package:dynamic_color/dynamic_color.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -82,15 +81,12 @@ class PulseSnapApp extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return DynamicColorBuilder(
-      builder: (light, dark) {
-        return MaterialApp.router(
-          title: 'PulseSnap',
-          theme: buildTheme(light, Brightness.light),
-          darkTheme: buildTheme(dark, Brightness.dark),
-          routerConfig: _router,
-        );
-      },
+    return MaterialApp.router(
+      title: 'PulseSnap',
+      debugShowCheckedModeBanner: false,
+      theme: buildTheme(null, Brightness.light),
+      darkTheme: buildTheme(null, Brightness.dark),
+      routerConfig: _router,
     );
   }
 }

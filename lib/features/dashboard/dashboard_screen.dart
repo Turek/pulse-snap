@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../core/theme/app_theme.dart';
 import '../../core/widgets/skeleton.dart';
 import '../../core/widgets/tinted_card.dart';
 import 'dashboard_provider.dart';
@@ -14,12 +15,7 @@ class DashboardScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final stats = ref.watch(dashboardStatsProvider);
-    final theme = Theme.of(context);
-    final sectionStyle = theme.textTheme.labelLarge?.copyWith(
-      color: theme.colorScheme.onSurfaceVariant,
-      fontWeight: FontWeight.w500,
-      letterSpacing: 0.4,
-    );
+    final sectionStyle = AppTextStyles.sectionCaps(context);
 
     return Scaffold(
       appBar: AppBar(title: const Text('PulseSnap')),
@@ -47,12 +43,13 @@ class DashboardScreen extends ConsumerWidget {
                     readings: s.last30Days.map((r) => r.reading).toList(),
                   ),
                   const SizedBox(height: 24),
-                  Text('AVERAGES', style: sectionStyle),
+                  Text('30-DAY AVERAGE', style: sectionStyle),
                   const SizedBox(height: 8),
                   _AveragesCard(
                     sys: s.avgSys,
                     dia: s.avgDia,
                     pulse: s.avgPulse,
+                    sampleCount: s.last30Days.length,
                   ),
                 ],
               ),
@@ -66,6 +63,7 @@ class _EmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
@@ -75,18 +73,18 @@ class _EmptyState extends StatelessWidget {
             Icon(
               Icons.monitor_heart_outlined,
               size: 56,
-              color: Theme.of(context).colorScheme.onSurfaceVariant,
+              color: theme.colorScheme.onSurfaceVariant,
             ),
             const SizedBox(height: 16),
             Text(
               'No readings yet',
-              style: Theme.of(context).textTheme.titleMedium,
+              style: theme.textTheme.titleMedium,
             ),
             const SizedBox(height: 4),
             Text(
               'Tap the camera button to snap your first reading.',
               textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.bodySmall,
+              style: theme.textTheme.bodySmall,
             ),
           ],
         ),
@@ -99,8 +97,13 @@ class _AveragesCard extends StatelessWidget {
   final double sys;
   final double dia;
   final double pulse;
-  const _AveragesCard(
-      {required this.sys, required this.dia, required this.pulse});
+  final int sampleCount;
+  const _AveragesCard({
+    required this.sys,
+    required this.dia,
+    required this.pulse,
+    required this.sampleCount,
+  });
 
   String _v(double v) => v > 0 ? v.toStringAsFixed(0) : '–';
 
@@ -111,64 +114,78 @@ class _AveragesCard extends StatelessWidget {
     return TintedCard(
       accent: SectionAccent.health,
       padding: const EdgeInsets.fromLTRB(20, 18, 20, 18),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.baseline,
-        textBaseline: TextBaseline.alphabetic,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            _v(sys),
-            style: theme.textTheme.headlineLarge?.copyWith(
-              fontWeight: FontWeight.w700,
-              height: 1,
-              letterSpacing: -1,
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 6),
-            child: Text(
-              '/',
-              style: theme.textTheme.headlineSmall?.copyWith(
-                color: scheme.onSurfaceVariant,
-                fontWeight: FontWeight.w300,
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.baseline,
+            textBaseline: TextBaseline.alphabetic,
+            children: [
+              Text(
+                _v(sys),
+                style: theme.textTheme.headlineLarge?.copyWith(
+                  fontWeight: FontWeight.w700,
+                  height: 1,
+                  letterSpacing: -1,
+                ),
               ),
-            ),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 6),
+                child: Text(
+                  '/',
+                  style: theme.textTheme.headlineSmall?.copyWith(
+                    color: scheme.onSurfaceVariant,
+                    fontWeight: FontWeight.w300,
+                  ),
+                ),
+              ),
+              Text(
+                _v(dia),
+                style: theme.textTheme.headlineMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
+                  color: scheme.onSurfaceVariant,
+                  height: 1,
+                ),
+              ),
+              const SizedBox(width: 6),
+              Padding(
+                padding: const EdgeInsets.only(bottom: 2),
+                child: Text(
+                  'mmHg',
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: scheme.onSurfaceVariant,
+                  ),
+                ),
+              ),
+              const Spacer(),
+              Icon(Icons.favorite, size: 14, color: scheme.onSurfaceVariant),
+              const SizedBox(width: 4),
+              Text(
+                _v(pulse),
+                style: theme.textTheme.titleMedium?.copyWith(
+                  color: scheme.onSurfaceVariant,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const SizedBox(width: 2),
+              Padding(
+                padding: const EdgeInsets.only(top: 2),
+                child: Text(
+                  'bpm',
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: scheme.onSurfaceVariant,
+                  ),
+                ),
+              ),
+            ],
           ),
+          const SizedBox(height: 10),
           Text(
-            _v(dia),
-            style: theme.textTheme.headlineMedium?.copyWith(
-              fontWeight: FontWeight.w600,
+            sampleCount == 1
+                ? 'Across 1 reading · last 30 days'
+                : 'Across $sampleCount readings · last 30 days',
+            style: theme.textTheme.bodySmall?.copyWith(
               color: scheme.onSurfaceVariant,
-              height: 1,
-            ),
-          ),
-          const SizedBox(width: 6),
-          Padding(
-            padding: const EdgeInsets.only(bottom: 2),
-            child: Text(
-              'mmHg',
-              style: theme.textTheme.labelSmall?.copyWith(
-                color: scheme.onSurfaceVariant,
-              ),
-            ),
-          ),
-          const Spacer(),
-          Icon(Icons.favorite, size: 14, color: scheme.onSurfaceVariant),
-          const SizedBox(width: 4),
-          Text(
-            _v(pulse),
-            style: theme.textTheme.titleMedium?.copyWith(
-              color: scheme.onSurfaceVariant,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          const SizedBox(width: 2),
-          Padding(
-            padding: const EdgeInsets.only(top: 2),
-            child: Text(
-              'bpm',
-              style: theme.textTheme.labelSmall?.copyWith(
-                color: scheme.onSurfaceVariant,
-              ),
             ),
           ),
         ],

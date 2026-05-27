@@ -63,17 +63,28 @@ class ActionButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme = Theme.of(context).colorScheme;
-    final shape = RoundedRectangleBorder(
-      borderRadius: BorderRadius.circular(16),
-    );
-    const minSize = Size.fromHeight(52);
+    const shape = StadiumBorder();
+    const minSize = Size.fromHeight(48);
 
     Widget btn;
     switch (_kind) {
       case _ActionButtonKind.primary:
-        // Match the dashboard's "New Reading" FloatingActionButton.extended
-        // colour scheme so primary CTAs across the app feel like one set.
+        // DESIGN.md button-primary — filled brand primary, white text.
         btn = FilledButton.icon(
+          onPressed: onPressed,
+          icon: Icon(icon, size: 20),
+          label: Text(label, overflow: TextOverflow.ellipsis),
+          style: FilledButton.styleFrom(
+            minimumSize: minSize,
+            shape: shape,
+            backgroundColor: scheme.primary,
+            foregroundColor: scheme.onPrimary,
+            textStyle: const TextStyle(fontWeight: FontWeight.w600),
+          ),
+        );
+      case _ActionButtonKind.tonal:
+        // DESIGN.md button-secondary — tonal primary-container.
+        btn = FilledButton.tonalIcon(
           onPressed: onPressed,
           icon: Icon(icon, size: 20),
           label: Text(label, overflow: TextOverflow.ellipsis),
@@ -83,16 +94,6 @@ class ActionButton extends StatelessWidget {
             backgroundColor: scheme.primaryContainer,
             foregroundColor: scheme.onPrimaryContainer,
             textStyle: const TextStyle(fontWeight: FontWeight.w600),
-          ),
-        );
-      case _ActionButtonKind.tonal:
-        btn = FilledButton.tonalIcon(
-          onPressed: onPressed,
-          icon: Icon(icon, size: 20),
-          label: Text(label, overflow: TextOverflow.ellipsis),
-          style: FilledButton.styleFrom(
-            minimumSize: minSize,
-            shape: shape,
           ),
         );
       case _ActionButtonKind.danger:

@@ -5,40 +5,68 @@ import 'package:go_router/go_router.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../core/theme/app_theme.dart';
+import '../../core/widgets/app_buttons.dart';
 import 'settings_provider.dart';
 import 'widgets/health_platform_tile.dart';
 
+/// Settings — sectioned per DESIGN.md:
+///   CLOUD OCR     → Gemini Flash API key (with link + status dot)
+///   INTEGRATIONS  → Apple Health / Health Connect tile
+///   DATA          → Export to PDF
+///   ABOUT         → version
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final sectionStyle = AppTextStyles.sectionCaps(context);
+
     return Scaffold(
       appBar: AppBar(title: const Text('Settings')),
       body: ListView(
         children: [
+          _SectionHeader(label: 'CLOUD OCR', style: sectionStyle),
           const _GeminiApiKeyTile(),
-          const Divider(),
+
+          const Divider(height: 24),
+
+          _SectionHeader(label: 'INTEGRATIONS', style: sectionStyle),
+          const HealthPlatformTile(),
+
+          const Divider(height: 24),
+
+          _SectionHeader(label: 'DATA', style: sectionStyle),
           ListTile(
             leading: const Icon(Icons.picture_as_pdf_outlined),
-            title: const Text('Export PDF'),
-            subtitle: const Text(
-                'Doctor-friendly report over a chosen date range.'),
+            title: const Text('Export to PDF'),
+            subtitle: const Text('Pick a date range, preview and share'),
             trailing: const Icon(Icons.chevron_right),
             onTap: () => context.push('/export'),
           ),
-          const Divider(),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-            child: Text('Health Platforms',
-                style: Theme.of(context).textTheme.titleMedium),
-          ),
-          const HealthPlatformTile(),
-          const Divider(),
+
+          const Divider(height: 24),
+
+          _SectionHeader(label: 'ABOUT', style: sectionStyle),
           const _AboutTile(),
-          const Divider(),
+
+          const SizedBox(height: 24),
         ],
       ),
+    );
+  }
+}
+
+class _SectionHeader extends StatelessWidget {
+  final String label;
+  final TextStyle? style;
+  const _SectionHeader({required this.label, required this.style});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+      child: Text(label, style: style),
     );
   }
 }
@@ -89,27 +117,28 @@ class _GeminiApiKeyTileState extends ConsumerState<_GeminiApiKeyTile> {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
     final keyAsync = ref.watch(geminiApiKeyProvider);
     final current = keyAsync.maybeWhen(data: (k) => k, orElse: () => '');
     _ctrl ??= TextEditingController(text: current);
-    final theme = Theme.of(context);
+    final hasKey = current.isNotEmpty;
     final bodySmall = theme.textTheme.bodySmall;
     final linkStyle = bodySmall?.copyWith(
-      color: theme.colorScheme.primary,
+      color: scheme.primary,
       decoration: TextDecoration.underline,
     );
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+      padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Gemini Flash API key',
-              style: theme.textTheme.titleMedium),
+          Text('Gemini Flash API key', style: theme.textTheme.titleMedium),
           const SizedBox(height: 4),
           Text.rich(
             TextSpan(
-              style: bodySmall,
+              style: bodySmall?.copyWith(color: scheme.onSurfaceVariant),
               children: [
                 const TextSpan(text: 'Get one free at '),
                 TextSpan(
@@ -138,12 +167,32 @@ class _GeminiApiKeyTileState extends ConsumerState<_GeminiApiKeyTile> {
               ),
             ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 10),
           Row(
-            mainAxisAlignment: MainAxisAlignment.end,
             children: [
-              if (current.isNotEmpty)
-                TextButton(
+              Container(
+                width: 8,
+                height: 8,
+                decoration: BoxDecoration(
+                  color: hasKey ? scheme.tertiary : scheme.outline,
+                  shape: BoxShape.circle,
+                ),
+              ),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  hasKey
+                      ? 'Key set · Gemini Flash active'
+                      : 'No key · using on-device OCR',
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color:
+                        hasKey ? scheme.tertiary : scheme.onSurfaceVariant,
+                  ),
+                ),
+              ),
+              if (hasKey)
+                TextActionButton(
+                  label: 'Clear',
                   onPressed: () async {
                     await ref.read(geminiApiKeyProvider.notifier).set('');
                     _ctrl!.clear();
@@ -153,10 +202,11 @@ class _GeminiApiKeyTileState extends ConsumerState<_GeminiApiKeyTile> {
                       );
                     }
                   },
-                  child: const Text('Clear'),
                 ),
               const SizedBox(width: 8),
-              FilledButton(
+              PrimaryButton(
+                label: 'Save',
+                icon: Icons.check,
                 onPressed: () async {
                   await ref
                       .read(geminiApiKeyProvider.notifier)
@@ -167,7 +217,6 @@ class _GeminiApiKeyTileState extends ConsumerState<_GeminiApiKeyTile> {
                     );
                   }
                 },
-                child: const Text('Save'),
               ),
             ],
           ),
