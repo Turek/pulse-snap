@@ -112,30 +112,27 @@ class _AppShellState extends ConsumerState<_AppShell> {
     return i < 0 ? 0 : i;
   }
 
-  /// Handles system back: jumps back to Home if we're on another tab;
-  /// otherwise shows "press back again to exit" once and only lets the
-  /// system pop (exiting the app) on a second press within 2 seconds.
-  bool _handleBack(BuildContext context) {
+  Future<void> _handleBack(BuildContext context) async {
     if (_currentIndex != 0) {
       context.go('/');
-      return false; // consumed
+      return;
     }
     final now = DateTime.now();
-    if (_lastBackPress == null ||
-        now.difference(_lastBackPress!) > const Duration(seconds: 2)) {
-      _lastBackPress = now;
-      ScaffoldMessenger.of(context)
-        ..clearSnackBars()
-        ..showSnackBar(
-          const SnackBar(
-            content: Text('Press back again to exit'),
-            duration: Duration(seconds: 2),
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-      return false; // consumed; wait for second press
+    final last = _lastBackPress;
+    if (last != null && now.difference(last) <= const Duration(seconds: 2)) {
+      await SystemNavigator.pop();
+      return;
     }
-    return true; // allow pop → OS closes the app
+    _lastBackPress = now;
+    ScaffoldMessenger.of(context)
+      ..clearSnackBars()
+      ..showSnackBar(
+        const SnackBar(
+          content: Text('Press back again to exit'),
+          duration: Duration(seconds: 2),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
   }
 
   @override
@@ -175,10 +172,7 @@ class _AppShellState extends ConsumerState<_AppShell> {
       canPop: false,
       onPopInvokedWithResult: (didPop, _) {
         if (didPop) return;
-        if (_handleBack(context)) {
-          // Allow the system to actually pop (exit the app).
-          SystemNavigator.pop();
-        }
+        _handleBack(context);
       },
       child: Scaffold(
       body: PageView(
