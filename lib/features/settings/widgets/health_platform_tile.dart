@@ -38,21 +38,56 @@ class HealthPlatformTile extends ConsumerWidget {
   }
 }
 
-class _Body extends ConsumerWidget {
+class _Body extends ConsumerStatefulWidget {
   final HealthPlatformState state;
   final String platformLabel;
   const _Body({required this.state, required this.platformLabel});
 
+  @override
+  ConsumerState<_Body> createState() => _BodyState();
+}
+
+class _BodyState extends ConsumerState<_Body> {
+  bool _syncing = false;
+
+  HealthPlatformState get state => widget.state;
+  String get platformLabel => widget.platformLabel;
+
   String _subtitle() {
     if (state.pendingPermission) return 'Connecting…';
     if (!state.connected) return 'Not connected';
+    if (_syncing) return 'Syncing existing readings…';
     final ts = state.lastSyncAt;
     if (ts == null) return 'Connected';
     return 'Connected — last sync ${DateFormat('MMM d HH:mm').format(ts)}';
   }
 
+  Future<void> _syncExisting() async {
+    final messenger = ScaffoldMessenger.of(context);
+    setState(() => _syncing = true);
+    try {
+      final count =
+          await ref.read(healthPlatformProvider.notifier).syncExisting();
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(
+            count == 0
+                ? 'All readings were already synced.'
+                : 'Synced $count reading${count == 1 ? '' : 's'} to $platformLabel.',
+          ),
+        ),
+      );
+    } catch (e) {
+      messenger.showSnackBar(
+        SnackBar(content: Text('Sync failed: $e')),
+      );
+    } finally {
+      if (mounted) setState(() => _syncing = false);
+    }
+  }
+
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final notifier = ref.read(healthPlatformProvider.notifier);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -62,7 +97,7 @@ class _Body extends ConsumerWidget {
           title: Text(platformLabel),
           subtitle: Text(_subtitle()),
           value: state.connected,
-          onChanged: state.pendingPermission || !state.available
+          onChanged: state.pendingPermission || !state.available || _syncing
               ? null
               : (v) async {
                   if (v) {
@@ -85,21 +120,13 @@ class _Body extends ConsumerWidget {
             child: Row(
               children: [
                 SecondaryButton(
-                  label: 'Sync now',
-                  onPressed: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text(
-                          'All readings are already synced as they are saved.',
-                        ),
-                      ),
-                    );
-                  },
+                  label: _syncing ? 'Syncing…' : 'Sync past readings',
+                  onPressed: _syncing ? null : _syncExisting,
                 ),
                 const SizedBox(width: 8),
                 TextActionButton(
                   label: 'Disconnect',
-                  onPressed: () => notifier.disconnect(),
+                  onPressed: _syncing ? null : () => notifier.disconnect(),
                 ),
               ],
             ),

@@ -54,6 +54,9 @@ class _RecordingRepo implements IReadingRepository {
 
   @override
   Future<List<String>> getAllUsedTags() async => const [];
+
+  @override
+  Future<int> backfillToHealthPlatform() async => 0;
 }
 
 void main() {

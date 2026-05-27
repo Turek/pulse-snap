@@ -35,6 +35,19 @@
                 <action android:name="androidx.health.ACTION_SHOW_PERMISSIONS_RATIONALE"/>
             </intent-filter>
         </activity>
+        <!-- Required by Health Connect: lets it link to the app's permission
+             rationale / privacy screen. Without this the app is flagged
+             "Needs updating" and permission grants return empty. -->
+        <activity-alias
+            android:name="ViewPermissionUsageActivity"
+            android:exported="true"
+            android:targetActivity=".MainActivity"
+            android:permission="android.permission.START_VIEW_PERMISSION_USAGE">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW_PERMISSION_USAGE" />
+                <category android:name="android.intent.category.HEALTH_PERMISSIONS" />
+            </intent-filter>
+        </activity-alias>
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
         <meta-data
@@ -56,5 +69,10 @@
             <data android:mimeType="text/plain"/>
         </intent>
         <package android:name="com.google.android.apps.healthdata"/>
+        <!-- Package visibility so the app can resolve Health Connect's
+             permission-rationale flow (required by the health plugin). -->
+        <intent>
+            <action android:name="androidx.health.ACTION_SHOW_PERMISSIONS_RATIONALE" />
+        </intent>
     </queries>
 </manifest>

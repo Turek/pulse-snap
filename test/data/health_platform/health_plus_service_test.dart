@@ -41,6 +41,19 @@ class _FakeHealthFacade extends HealthFacade {
   }
 
   @override
+  Future<bool> writeBloodPressure({
+    required int systolic,
+    required int diastolic,
+    required DateTime startTime,
+    RecordingMethod recordingMethod = RecordingMethod.manual,
+  }) async {
+    bpWrites.add(_BpWrite(systolic, diastolic, startTime));
+    return true;
+  }
+
+  final List<_BpWrite> bpWrites = [];
+
+  @override
   Future<void> revokePermissions() async {}
 }
 
@@ -49,6 +62,13 @@ class _Write {
   final double value;
   final DateTime startTime;
   _Write(this.type, this.value, this.startTime);
+}
+
+class _BpWrite {
+  final int systolic;
+  final int diastolic;
+  final DateTime startTime;
+  _BpWrite(this.systolic, this.diastolic, this.startTime);
 }
 
 ReadingWithTags _r({
@@ -75,26 +95,24 @@ ReadingWithTags _r({
 }
 
 void main() {
-  test('writeReading sends sys/dia/HR with measuredAt timestamp', () async {
+  test('writeReading sends BP as one record + HR with measuredAt timestamp',
+      () async {
     final fake = _FakeHealthFacade();
     final svc = HealthPlusService(facade: fake);
     final reading = _r(sys: 128, dia: 82, pulse: 70);
     final id = await svc.writeReading(reading);
 
     expect(id, isNotNull);
-    expect(fake.writes.length, 3);
-    final types = fake.writes.map((w) => w.type).toSet();
-    expect(types, {
-      HealthDataType.BLOOD_PRESSURE_SYSTOLIC,
-      HealthDataType.BLOOD_PRESSURE_DIASTOLIC,
-      HealthDataType.HEART_RATE,
-    });
-    for (final w in fake.writes) {
-      expect(w.startTime, reading.reading.measuredAt);
-    }
-    final sysWrite = fake.writes
-        .firstWhere((w) => w.type == HealthDataType.BLOOD_PRESSURE_SYSTOLIC);
-    expect(sysWrite.value, 128);
+    // Blood pressure: a single combined write, not two separate data points.
+    expect(fake.bpWrites.length, 1);
+    expect(fake.bpWrites.single.systolic, 128);
+    expect(fake.bpWrites.single.diastolic, 82);
+    expect(fake.bpWrites.single.startTime, reading.reading.measuredAt);
+    // Heart rate: one writeHealthData call.
+    expect(fake.writes.length, 1);
+    expect(fake.writes.single.type, HealthDataType.HEART_RATE);
+    expect(fake.writes.single.value, 70);
+    expect(fake.writes.single.startTime, reading.reading.measuredAt);
   });
 
   test('null pulse skips HR write', () async {
@@ -103,24 +121,16 @@ void main() {
     final id = await svc.writeReading(_r(pulse: null));
 
     expect(id, isNotNull);
-    expect(
-      fake.writes.any((w) => w.type == HealthDataType.HEART_RATE),
-      isFalse,
-    );
-    expect(fake.writes.length, 2);
+    expect(fake.writes, isEmpty);
+    expect(fake.bpWrites.length, 1);
   });
 
-  test('missing systolic skips BP writes', () async {
+  test('missing systolic skips BP write', () async {
     final fake = _FakeHealthFacade();
     final svc = HealthPlusService(facade: fake);
     await svc.writeReading(_r(sys: null, dia: 82, pulse: 70));
 
-    expect(
-      fake.writes.any((w) =>
-          w.type == HealthDataType.BLOOD_PRESSURE_SYSTOLIC ||
-          w.type == HealthDataType.BLOOD_PRESSURE_DIASTOLIC),
-      isFalse,
-    );
+    expect(fake.bpWrites, isEmpty);
     expect(fake.writes.length, 1);
     expect(fake.writes.single.type, HealthDataType.HEART_RATE);
   });
