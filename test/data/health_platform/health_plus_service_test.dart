@@ -8,6 +8,7 @@ import 'package:pulse_snap/domain/tags/reading_with_tags.dart';
 class _FakeHealthFacade extends HealthFacade {
   final List<_Write> writes = [];
   bool granted = true;
+  bool hrWriteOk = true;
 
   _FakeHealthFacade() : super();
 
@@ -33,11 +34,12 @@ class _FakeHealthFacade extends HealthFacade {
     required double value,
     required HealthDataType type,
     required DateTime startTime,
+    String? clientRecordId,
     DateTime? endTime,
     RecordingMethod recordingMethod = RecordingMethod.manual,
   }) async {
-    writes.add(_Write(type, value, startTime));
-    return true;
+    writes.add(_Write(type, value, startTime, clientRecordId));
+    return hrWriteOk;
   }
 
   @override
@@ -45,9 +47,10 @@ class _FakeHealthFacade extends HealthFacade {
     required int systolic,
     required int diastolic,
     required DateTime startTime,
+    String? clientRecordId,
     RecordingMethod recordingMethod = RecordingMethod.manual,
   }) async {
-    bpWrites.add(_BpWrite(systolic, diastolic, startTime));
+    bpWrites.add(_BpWrite(systolic, diastolic, startTime, clientRecordId));
     return true;
   }
 
@@ -61,14 +64,16 @@ class _Write {
   final HealthDataType type;
   final double value;
   final DateTime startTime;
-  _Write(this.type, this.value, this.startTime);
+  final String? clientRecordId;
+  _Write(this.type, this.value, this.startTime, this.clientRecordId);
 }
 
 class _BpWrite {
   final int systolic;
   final int diastolic;
   final DateTime startTime;
-  _BpWrite(this.systolic, this.diastolic, this.startTime);
+  final String? clientRecordId;
+  _BpWrite(this.systolic, this.diastolic, this.startTime, this.clientRecordId);
 }
 
 ReadingWithTags _r({
@@ -108,11 +113,14 @@ void main() {
     expect(fake.bpWrites.single.systolic, 128);
     expect(fake.bpWrites.single.diastolic, 82);
     expect(fake.bpWrites.single.startTime, reading.reading.measuredAt);
+    // Stable client-record id makes the BP write an idempotent upsert.
+    expect(fake.bpWrites.single.clientRecordId, 'pulsesnap-bp-1');
     // Heart rate: one writeHealthData call.
     expect(fake.writes.length, 1);
     expect(fake.writes.single.type, HealthDataType.HEART_RATE);
     expect(fake.writes.single.value, 70);
     expect(fake.writes.single.startTime, reading.reading.measuredAt);
+    expect(fake.writes.single.clientRecordId, 'pulsesnap-hr-1');
   });
 
   test('null pulse skips HR write', () async {
@@ -133,5 +141,18 @@ void main() {
     expect(fake.bpWrites, isEmpty);
     expect(fake.writes.length, 1);
     expect(fake.writes.single.type, HealthDataType.HEART_RATE);
+  });
+
+  test('partial write failure returns null so it is not marked synced',
+      () async {
+    final fake = _FakeHealthFacade()..hrWriteOk = false;
+    final svc = HealthPlusService(facade: fake);
+
+    // BP write succeeds, HR write fails -> reading is not fully synced.
+    final id = await svc.writeReading(_r(sys: 128, dia: 82, pulse: 70));
+
+    expect(id, isNull);
+    expect(fake.bpWrites.length, 1);
+    expect(fake.writes.length, 1);
   });
 }

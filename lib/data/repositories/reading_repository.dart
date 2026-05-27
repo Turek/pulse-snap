@@ -116,11 +116,13 @@ class ReadingRepository implements IReadingRepository {
           ..orderBy([(t) => OrderingTerm.asc(t.measuredAt)]))
         .get();
 
+    final pending = readings.where((r) => !syncedIds.contains(r.id)).toList();
+    final tagsById = await _tagsFor(pending.map((r) => r.id).toList());
+
     var count = 0;
-    for (final reading in readings) {
-      if (syncedIds.contains(reading.id)) continue;
+    for (final reading in pending) {
       try {
-        final tags = (await _tagsFor([reading.id]))[reading.id] ?? const [];
+        final tags = tagsById[reading.id] ?? const [];
         final externalId = await svc.writeReading(
           ReadingWithTags(reading: reading, tags: tags),
         );
