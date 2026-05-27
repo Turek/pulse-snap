@@ -123,6 +123,15 @@ class HealthPlatformNotifier extends AsyncNotifier<HealthPlatformState> {
     final lastSync = await _lastSyncFromDb();
     state = AsyncValue.data(current.copyWith(lastSyncAt: lastSync));
   }
+
+  /// Pushes all not-yet-synced existing readings to the health platform.
+  /// Returns the number of readings synced.
+  Future<int> syncExisting() async {
+    final count =
+        await ref.read(readingRepositoryProvider).backfillToHealthPlatform();
+    await refreshLastSync();
+    return count;
+  }
 }
 
 final healthPlatformProvider =

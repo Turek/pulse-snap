@@ -1,5 +1,6 @@
 import 'dart:io' show Platform;
 
+import 'package:flutter/foundation.dart' show debugPrint;
 import 'package:health/health.dart';
 import 'package:uuid/uuid.dart';
 
@@ -48,6 +49,22 @@ class HealthFacade {
       );
 
   Future<void> revokePermissions() => _health.revokePermissions();
+
+  Future<HealthConnectSdkStatus?> getHealthConnectSdkStatus() =>
+      _health.getHealthConnectSdkStatus();
+
+  Future<bool> writeBloodPressure({
+    required int systolic,
+    required int diastolic,
+    required DateTime startTime,
+    RecordingMethod recordingMethod = RecordingMethod.manual,
+  }) =>
+      _health.writeBloodPressure(
+        systolic: systolic,
+        diastolic: diastolic,
+        startTime: startTime,
+        recordingMethod: recordingMethod,
+      );
 }
 
 /// Platform name persisted in `ExternalSyncRecord.platform`.
@@ -80,6 +97,13 @@ class HealthPlusService implements IHealthPlatformService {
     if (!Platform.isIOS && !Platform.isAndroid) return false;
     try {
       await _facade.ensureConfigured();
+      if (Platform.isAndroid) {
+        // Diagnostic: surface the real Health Connect provider status. A value
+        // of sdkUnavailableProviderUpdateRequired is what shows the app under
+        // "Needs updating" and makes permission grants return empty.
+        final status = await _facade.getHealthConnectSdkStatus();
+        debugPrint('PulseSnap: HealthConnect SDK status = $status');
+      }
       return true;
     } catch (_) {
       return false;
@@ -89,6 +113,10 @@ class HealthPlusService implements IHealthPlatformService {
   @override
   Future<bool> requestWritePermissions() async {
     await _facade.ensureConfigured();
+    if (Platform.isAndroid) {
+      final status = await _facade.getHealthConnectSdkStatus();
+      debugPrint('PulseSnap: HealthConnect SDK status = $status');
+    }
     return _facade.requestAuthorization(_types, permissions: _writePermissions);
   }
 
@@ -111,17 +139,15 @@ class HealthPlusService implements IHealthPlatformService {
     await _facade.ensureConfigured();
 
     if (r.systolic != null && r.diastolic != null) {
-      final sysOk = await _facade.writeHealthData(
-        value: r.systolic!.toDouble(),
-        type: HealthDataType.BLOOD_PRESSURE_SYSTOLIC,
+      // Health Connect stores blood pressure as a single BloodPressureRecord —
+      // systolic and diastolic must be written together. Writing them as
+      // separate data points does not produce a valid BP record on Android.
+      final bpOk = await _facade.writeBloodPressure(
+        systolic: r.systolic!,
+        diastolic: r.diastolic!,
         startTime: ts,
       );
-      final diaOk = await _facade.writeHealthData(
-        value: r.diastolic!.toDouble(),
-        type: HealthDataType.BLOOD_PRESSURE_DIASTOLIC,
-        startTime: ts,
-      );
-      anyWritten = anyWritten || sysOk || diaOk;
+      anyWritten = anyWritten || bpOk;
     }
 
     if (r.pulse != null) {

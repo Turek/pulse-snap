@@ -101,6 +101,46 @@ class ReadingRepository implements IReadingRepository {
     }
   }
 
+  @override
+  Future<int> backfillToHealthPlatform() async {
+    final svc = _health;
+    if (svc == null) return 0;
+    if (!await svc.hasWritePermissions()) return 0;
+
+    // Readings that already have a sync record are skipped, so re-running is
+    // safe and never produces duplicates in the health platform.
+    final synced = await _db.select(_db.externalSyncRecords).get();
+    final syncedIds = synced.map((r) => r.readingId).toSet();
+
+    final readings = await (_db.select(_db.readings)
+          ..orderBy([(t) => OrderingTerm.asc(t.measuredAt)]))
+        .get();
+
+    var count = 0;
+    for (final reading in readings) {
+      if (syncedIds.contains(reading.id)) continue;
+      try {
+        final tags = (await _tagsFor([reading.id]))[reading.id] ?? const [];
+        final externalId = await svc.writeReading(
+          ReadingWithTags(reading: reading, tags: tags),
+        );
+        if (externalId == null) continue;
+        await _db.into(_db.externalSyncRecords).insert(
+              ExternalSyncRecordsCompanion.insert(
+                readingId: reading.id,
+                sourceType: _exportSourceType().name,
+                externalId: externalId,
+                platform: currentHealthPlatformName(),
+              ),
+            );
+        count++;
+      } catch (e, st) {
+        debugPrint('Backfill sync failed for reading ${reading.id}: $e\n$st');
+      }
+    }
+    return count;
+  }
+
   static ReadingSourceType _exportSourceType() {
     final name = currentHealthPlatformName();
     return name == 'apple_health'
