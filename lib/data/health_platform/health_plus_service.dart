@@ -37,6 +37,7 @@ class HealthFacade {
     required double value,
     required HealthDataType type,
     required DateTime startTime,
+    String? clientRecordId,
     DateTime? endTime,
     RecordingMethod recordingMethod = RecordingMethod.manual,
   }) =>
@@ -44,6 +45,7 @@ class HealthFacade {
         value: value,
         type: type,
         startTime: startTime,
+        clientRecordId: clientRecordId,
         endTime: endTime,
         recordingMethod: recordingMethod,
       );
@@ -57,12 +59,14 @@ class HealthFacade {
     required int systolic,
     required int diastolic,
     required DateTime startTime,
+    String? clientRecordId,
     RecordingMethod recordingMethod = RecordingMethod.manual,
   }) =>
       _health.writeBloodPressure(
         systolic: systolic,
         diastolic: diastolic,
         startTime: startTime,
+        clientRecordId: clientRecordId,
         recordingMethod: recordingMethod,
       );
 }
@@ -98,11 +102,13 @@ class HealthPlusService implements IHealthPlatformService {
     try {
       await _facade.ensureConfigured();
       if (Platform.isAndroid) {
-        // Diagnostic: surface the real Health Connect provider status. A value
-        // of sdkUnavailableProviderUpdateRequired is what shows the app under
-        // "Needs updating" and makes permission grants return empty.
+        // On Android, "available" means the Health Connect provider is actually
+        // usable. A status of sdkUnavailableProviderUpdateRequired/unavailable
+        // is what lists the app under "Needs updating" and makes grants return
+        // empty, so the UI must treat those as not-available.
         final status = await _facade.getHealthConnectSdkStatus();
         debugPrint('PulseSnap: HealthConnect SDK status = $status');
+        return status == HealthConnectSdkStatus.sdkAvailable;
       }
       return true;
     } catch (_) {
@@ -113,10 +119,6 @@ class HealthPlusService implements IHealthPlatformService {
   @override
   Future<bool> requestWritePermissions() async {
     await _facade.ensureConfigured();
-    if (Platform.isAndroid) {
-      final status = await _facade.getHealthConnectSdkStatus();
-      debugPrint('PulseSnap: HealthConnect SDK status = $status');
-    }
     return _facade.requestAuthorization(_types, permissions: _writePermissions);
   }
 
@@ -134,7 +136,8 @@ class HealthPlusService implements IHealthPlatformService {
   Future<String?> writeReading(ReadingWithTags reading) async {
     final r = reading.reading;
     final ts = r.measuredAt;
-    var anyWritten = false;
+    var attempted = false;
+    var allOk = true;
 
     await _facade.ensureConfigured();
 
@@ -142,24 +145,33 @@ class HealthPlusService implements IHealthPlatformService {
       // Health Connect stores blood pressure as a single BloodPressureRecord —
       // systolic and diastolic must be written together. Writing them as
       // separate data points does not produce a valid BP record on Android.
+      // A stable clientRecordId makes the write an idempotent upsert, so a
+      // re-sync of the same reading updates rather than duplicates.
+      attempted = true;
       final bpOk = await _facade.writeBloodPressure(
         systolic: r.systolic!,
         diastolic: r.diastolic!,
         startTime: ts,
+        clientRecordId: 'pulsesnap-bp-${r.id}',
       );
-      anyWritten = anyWritten || bpOk;
+      allOk = allOk && bpOk;
     }
 
     if (r.pulse != null) {
+      attempted = true;
       final hrOk = await _facade.writeHealthData(
         value: r.pulse!.toDouble(),
         type: HealthDataType.HEART_RATE,
         startTime: ts,
+        clientRecordId: 'pulsesnap-hr-${r.id}',
       );
-      anyWritten = anyWritten || hrOk;
+      allOk = allOk && hrOk;
     }
 
-    if (!anyWritten) return null;
+    // Only report success when the whole reading was written. A partial
+    // failure returns null so it is not recorded as synced and gets retried
+    // (the idempotent clientRecordIds make the retry safe).
+    if (!attempted || !allOk) return null;
     // The `health` package does not surface a stable external id, so we
     // synthesize one to persist in ExternalSyncRecord.
     return _uuid.v4();
