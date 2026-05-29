@@ -52,3 +52,5 @@ backup
 
 # Local-only symlink to external source of truth
 Docs
+Logo
+DESIGN.md
