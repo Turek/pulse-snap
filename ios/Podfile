@@ -44,6 +44,16 @@ post_install do |installer|
       # Keep every pod at the project's minimum so none falls back below the
       # floor that google_mlkit_* requires.
       config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = MIN_IOS_VERSION
+
+      # permission_handler is opt-in per permission via compile-time macros.
+      # Without these, Permission.<x>.request() returns denied without ever
+      # showing the iOS prompt. See:
+      # https://pub.dev/packages/permission_handler#setup
+      config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] ||= [
+        '$(inherited)',
+        'PERMISSION_CAMERA=1',
+        'PERMISSION_PHOTOS=1',
+      ]
     end
   end
 end

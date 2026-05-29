@@ -14,22 +14,50 @@ class CameraScreen extends ConsumerStatefulWidget {
   ConsumerState<CameraScreen> createState() => _CameraScreenState();
 }
 
-class _CameraScreenState extends ConsumerState<CameraScreen> {
+class _CameraScreenState extends ConsumerState<CameraScreen>
+    with WidgetsBindingObserver {
   CameraController? _controller;
   Future<void>? _init;
   bool _flashOn = false;
   String? _error;
+  // True when the camera permission is permanently denied or restricted —
+  // requesting again is a no-op, so the user has to flip the switch in
+  // iOS Settings. We render an "Open Settings" recovery UI in that case.
+  bool _permissionBlocked = false;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _init = _setup();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // If the user toggles the permission in Settings and returns to the app,
+    // re-run setup so the preview comes up without forcing them to back out
+    // of the screen and re-enter it.
+    if (state == AppLifecycleState.resumed &&
+        _controller == null &&
+        _error != null) {
+      setState(() {
+        _error = null;
+        _permissionBlocked = false;
+        _init = _setup();
+      });
+    }
   }
 
   Future<void> _setup() async {
     final status = await Permission.camera.request();
     if (!status.isGranted) {
-      setState(() => _error = 'Camera permission denied');
+      setState(() {
+        _permissionBlocked =
+            status.isPermanentlyDenied || status.isRestricted;
+        _error = _permissionBlocked
+            ? 'PulseSnap needs camera access to capture readings. Enable it in Settings.'
+            : 'Camera permission is required to capture a reading.';
+      });
       return;
     }
     final cameras = await availableCameras();
@@ -56,6 +84,7 @@ class _CameraScreenState extends ConsumerState<CameraScreen> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     final c = _controller;
     if (c != null) {
       // Ensure torch is off before the controller is torn down, otherwise
@@ -118,11 +147,16 @@ class _CameraScreenState extends ConsumerState<CameraScreen> {
         future: _init,
         builder: (context, snapshot) {
           if (_error != null) {
-            return Center(
-              child: Text(
-                _error!,
-                style: const TextStyle(color: Colors.white),
-              ),
+            return _PermissionErrorView(
+              message: _error!,
+              blocked: _permissionBlocked,
+              onRetry: () {
+                setState(() {
+                  _error = null;
+                  _permissionBlocked = false;
+                  _init = _setup();
+                });
+              },
             );
           }
           if (_controller == null ||
@@ -171,6 +205,55 @@ class _CameraScreenState extends ConsumerState<CameraScreen> {
             ],
           );
         },
+      ),
+    );
+  }
+}
+
+class _PermissionErrorView extends StatelessWidget {
+  const _PermissionErrorView({
+    required this.message,
+    required this.blocked,
+    required this.onRetry,
+  });
+
+  final String message;
+  final bool blocked;
+  final VoidCallback onRetry;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 32),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Icon(Icons.no_photography_outlined,
+              color: Colors.white70, size: 64),
+          const SizedBox(height: 16),
+          Text(
+            message,
+            textAlign: TextAlign.center,
+            style: const TextStyle(color: Colors.white, fontSize: 16),
+          ),
+          const SizedBox(height: 24),
+          if (blocked)
+            FilledButton.icon(
+              icon: const Icon(Icons.settings),
+              label: const Text('Open Settings'),
+              onPressed: openAppSettings,
+            )
+          else
+            FilledButton(
+              onPressed: onRetry,
+              child: const Text('Grant camera access'),
+            ),
+          TextButton(
+            onPressed: () => context.go('/'),
+            style: TextButton.styleFrom(foregroundColor: Colors.white70),
+            child: const Text('Cancel'),
+          ),
+        ],
       ),
     );
   }

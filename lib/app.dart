@@ -27,23 +27,28 @@ final _router = GoRouter(
       builder: (context, state, child) =>
           _AppShell(location: state.matchedLocation),
       routes: [
+        // The shell ignores these children and drives its own PageView,
+        // so the page content is a placeholder. Each NoTransitionPage gets
+        // `state.pageKey` so the three shell routes have distinct keys in
+        // the navigator stack (otherwise const-canonicalization makes them
+        // the same object and Navigator's duplicate-key assertion fires).
         GoRoute(
           path: '/',
           name: 'dashboard',
           pageBuilder: (context, state) =>
-              const NoTransitionPage(child: SizedBox()),
+              NoTransitionPage(key: state.pageKey, child: const SizedBox()),
         ),
         GoRoute(
           path: '/history',
           name: 'history',
           pageBuilder: (context, state) =>
-              const NoTransitionPage(child: SizedBox()),
+              NoTransitionPage(key: state.pageKey, child: const SizedBox()),
         ),
         GoRoute(
           path: '/settings',
           name: 'settings',
           pageBuilder: (context, state) =>
-              const NoTransitionPage(child: SizedBox()),
+              NoTransitionPage(key: state.pageKey, child: const SizedBox()),
         ),
       ],
     ),
@@ -87,6 +92,14 @@ class PulseSnapApp extends ConsumerWidget {
       theme: buildTheme(null, Brightness.light),
       darkTheme: buildTheme(null, Brightness.dark),
       routerConfig: _router,
+      // App-wide tap-outside-to-dismiss keyboard. iOS does not do this
+      // automatically; without it the on-screen keyboard covers half the
+      // screen with no way to dismiss it once a TextField loses relevance.
+      builder: (context, child) => GestureDetector(
+        behavior: HitTestBehavior.translucent,
+        onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
+        child: child,
+      ),
     );
   }
 }
