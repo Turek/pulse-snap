@@ -123,17 +123,26 @@ class HealthPlusService implements IHealthPlatformService {
   @override
   Future<bool> requestWritePermissions() async {
     await _facade.ensureConfigured();
+    // NOTE: On iOS this returns true as soon as the HealthKit permission sheet
+    // is dismissed — Apple's privacy model forbids apps from learning whether
+    // the user actually granted *write* access. A `true` here does not mean
+    // the user said yes; only that the request flow completed. Real grant
+    // status is only observable from the result of an actual write.
     return _facade.requestAuthorization(_types, permissions: _writePermissions);
   }
 
   @override
   Future<bool> hasWritePermissions() async {
     await _facade.ensureConfigured();
-    // iOS may return null for WRITE checks; treat null as "unknown -> false"
-    // so we never try to write without an explicit grant.
     final granted =
         await _facade.hasPermissions(_types, permissions: _writePermissions);
-    return granted == true;
+    // iOS deliberately returns null for WRITE — Apple won't reveal grant
+    // status. Treat null as "assume granted and let the write itself be the
+    // source of truth" (a denied write returns false from the health package,
+    // so we never record a spurious sync). On Android, Health Connect answers
+    // authoritatively, so null there genuinely means "no".
+    if (granted != null) return granted;
+    return Platform.isIOS;
   }
 
   @override

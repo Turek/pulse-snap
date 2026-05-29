@@ -114,3 +114,30 @@ lib/
 `TfLiteRegionScanner` and `GeminiFlashScanner` are stubbed and live behind
 the same `IScanner` interface — wire them into `ScanOrchestrator.full()`
 when the models / backend are ready.
+
+## Known issues
+
+### iOS 26.5 — Apple Health permission sheet silently drops Blood Pressure
+
+On **iOS 26.5 RC1 (23F75) and RC2 (23F77)** — both device and simulator —
+Apple's HealthKit `requestAuthorization` sheet silently excludes the
+`BloodPressureSystolic` / `BloodPressureDiastolic` toggles even when the
+app requests them. Heart Rate appears; BP does not. The completion
+handler returns `success = true` with `error = nil`, so the app has no
+signal to detect the drop. BP writes then silently no-op forever until
+the user manually flips Blood Pressure → ON in *Settings → Privacy &
+Security → Health → PulseSnap*.
+
+This is **not** a PulseSnap bug. It's an Apple regression, reported on
+the Apple Developer Forums (thread 825866) and tracked as Feedback
+**FB22735935**. It does **not** reproduce on iOS 26.4.2 or earlier.
+
+**What we ship today:** the HealthKit entitlement and the BP write
+payload (`HKCorrelation` of systolic + diastolic in mmHg) are both
+canonical and correct — they work on every iOS version. Users on
+iOS ≤ 26.4 hit the seamless in-app sheet. Users on iOS 26.5 need the
+Settings detour until Apple ships a fix; a one-tap *Open Apple Health*
+CTA in `HealthPlatformTile` is planned for that case (TODO).
+
+**When Apple fixes 26.5:** the only thing to remove is the CTA — the
+underlying code already works.
