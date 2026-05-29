@@ -16,9 +16,13 @@ class ScanOrchestrator {
   ScanOrchestrator(this._pipeline);
 
   /// Legacy MVP pipeline (kept for tests / fallback if artifact pipeline
-  /// errors out): Tesseract first, ML Kit second.
-  factory ScanOrchestrator.mvp() =>
-      ScanOrchestrator([TesseractScanner(), MlKitScanner()]);
+  /// errors out): Tesseract first, ML Kit second. Tesseract is dropped on
+  /// platforms where it isn't supported (currently iOS — see
+  /// [TesseractScanner.isSupported]).
+  factory ScanOrchestrator.mvp() => ScanOrchestrator([
+        if (TesseractScanner.isSupported) TesseractScanner(),
+        MlKitScanner(),
+      ]);
 
   /// Runs scanners in order, returning the first confident & plausible result.
   Future<ScanResult> process(File imageFile) async {
@@ -78,7 +82,11 @@ class ScanOrchestrator {
 
   static Future<ScanArtifacts> _onDeviceWithArtifacts(File imageFile) async {
     final mlkit = MlKitScanner();
-    final tess = TesseractScanner();
+    // Tesseract is the secondary scanner on supported platforms (Android).
+    // On iOS we run ML Kit alone — the orchestrator handles the null below
+    // so the result truthfully reports ScannerType.mlKit instead of
+    // pretending Tesseract ran and returned nothing.
+    final tess = TesseractScanner.isSupported ? TesseractScanner() : null;
 
     // Pass 1: ML Kit on full image — gives us labels + their boxes plus
     // any numbers it can read.
@@ -135,31 +143,41 @@ class ScanOrchestrator {
       );
     }
 
-    // Run Tesseract on either the cropped binary or the original.
-    final tessArtifacts =
-        await tess.scanForCandidates(ocrTarget);
+    // Run Tesseract on either the cropped binary or the original, if it's
+    // available on this platform.
+    final tessArtifacts = tess == null
+        ? const TesseractCandidates(candidates: [], rawText: '')
+        : await tess.scanForCandidates(ocrTarget);
 
     // Combine: Tesseract candidates (numbers) + ML Kit labels (boxes).
     // For BP plausibility per slot.
     final assigned = _assignFromCandidates(tessArtifacts.candidates);
 
     // Pick whichever has more useful data — Tesseract assignment usually
-    // wins on 7-seg, but if Tesseract found nothing the ML Kit result
-    // (which may have caught numbers in some monitors) is still useful.
-    final chosen = (assigned.isComplete && assigned.isPlausible)
-        ? assigned
-        : (mlkitResult.confidence > assigned.confidence
-            ? mlkitResult
-            : assigned);
+    // wins on 7-seg, but if Tesseract found nothing (or didn't run at all
+    // on iOS) the ML Kit result is the only honest answer. We compare
+    // strictly so a zero-confidence Tesseract stub never out-tiebreaks
+    // a zero-confidence ML Kit result and mis-attributes the source.
+    final ScanResult chosen;
+    if (assigned.isComplete && assigned.isPlausible) {
+      chosen = assigned;
+    } else if (tess == null || mlkitResult.confidence >= assigned.confidence) {
+      chosen = mlkitResult;
+    } else {
+      chosen = assigned;
+    }
 
+    final tessDebug = tess == null
+        ? 'tess: (disabled on this platform)'
+        : 'tess: ${tessArtifacts.rawText}';
     return ScanArtifacts(
       result: chosen.copyWith(
-        debugInfo: 'tess: ${tessArtifacts.rawText}\nmlkit: ${mlkitResult.debugInfo}',
+        debugInfo: '$tessDebug\nmlkit: ${mlkitResult.debugInfo}',
       ),
       cropImage: cropImage,
       binarizedImage: binarizedImage,
       candidateNumbers: tessArtifacts.candidates,
-      tesseractRawText: tessArtifacts.rawText,
+      tesseractRawText: tess == null ? null : tessArtifacts.rawText,
       mlkitRawText: mlkitResult.debugInfo,
       otsuThreshold: threshold,
       otsuInverted: inverted,

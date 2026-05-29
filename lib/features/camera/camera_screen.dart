@@ -14,22 +14,45 @@ class CameraScreen extends ConsumerStatefulWidget {
   ConsumerState<CameraScreen> createState() => _CameraScreenState();
 }
 
-class _CameraScreenState extends ConsumerState<CameraScreen>
-    with WidgetsBindingObserver {
-  CameraController? _controller;
-  Future<void>? _init;
-  bool _flashOn = false;
-  String? _error;
-  // True when the camera permission is permanently denied or restricted —
+/// Closed hierarchy of camera-screen states. Using a sealed class instead of
+/// loose nullable fields means the build method's switch is exhaustive and
+/// no two states (e.g. "denied" + "ready") can coexist by accident.
+sealed class _CameraState {
+  const _CameraState();
+}
+
+class _Initializing extends _CameraState {
+  const _Initializing();
+}
+
+class _Denied extends _CameraState {
+  final String message;
+  // True when the permission is permanently denied or restricted —
   // requesting again is a no-op, so the user has to flip the switch in
   // iOS Settings. We render an "Open Settings" recovery UI in that case.
-  bool _permissionBlocked = false;
+  final bool blocked;
+  const _Denied({required this.message, required this.blocked});
+}
+
+class _NoCameras extends _CameraState {
+  const _NoCameras();
+}
+
+class _Ready extends _CameraState {
+  final CameraController controller;
+  const _Ready(this.controller);
+}
+
+class _CameraScreenState extends ConsumerState<CameraScreen>
+    with WidgetsBindingObserver {
+  _CameraState _state = const _Initializing();
+  bool _flashOn = false;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    _init = _setup();
+    _setup();
   }
 
   @override
@@ -37,32 +60,33 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
     // If the user toggles the permission in Settings and returns to the app,
     // re-run setup so the preview comes up without forcing them to back out
     // of the screen and re-enter it.
-    if (state == AppLifecycleState.resumed &&
-        _controller == null &&
-        _error != null) {
-      setState(() {
-        _error = null;
-        _permissionBlocked = false;
-        _init = _setup();
-      });
+    if (state == AppLifecycleState.resumed && _state is _Denied) {
+      _retry();
     }
+  }
+
+  void _retry() {
+    setState(() => _state = const _Initializing());
+    _setup();
   }
 
   Future<void> _setup() async {
     final status = await Permission.camera.request();
+    if (!mounted) return;
     if (!status.isGranted) {
-      setState(() {
-        _permissionBlocked =
-            status.isPermanentlyDenied || status.isRestricted;
-        _error = _permissionBlocked
-            ? 'PulseSnap needs camera access to capture readings. Enable it in Settings.'
-            : 'Camera permission is required to capture a reading.';
-      });
+      final blocked = status.isPermanentlyDenied || status.isRestricted;
+      setState(() => _state = _Denied(
+            blocked: blocked,
+            message: blocked
+                ? 'PulseSnap needs camera access to capture readings. Enable it in Settings.'
+                : 'Camera permission is required to capture a reading.',
+          ));
       return;
     }
     final cameras = await availableCameras();
+    if (!mounted) return;
     if (cameras.isEmpty) {
-      setState(() => _error = 'No cameras available');
+      setState(() => _state = const _NoCameras());
       return;
     }
     final back = cameras.firstWhere(
@@ -79,32 +103,30 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
       await controller.dispose();
       return;
     }
-    setState(() => _controller = controller);
+    setState(() => _state = _Ready(controller));
   }
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
-    final c = _controller;
-    if (c != null) {
+    final s = _state;
+    if (s is _Ready) {
       // Ensure torch is off before the controller is torn down, otherwise
       // the LED can be left on after navigating away.
-      c.setFlashMode(FlashMode.off).catchError((_) {});
-      c.dispose();
+      s.controller.setFlashMode(FlashMode.off).catchError((_) {});
+      s.controller.dispose();
     }
     super.dispose();
   }
 
-  Future<void> _toggleFlash() async {
-    if (_controller == null) return;
+  Future<void> _toggleFlash(CameraController controller) async {
     final next = !_flashOn;
-    await _controller!.setFlashMode(next ? FlashMode.torch : FlashMode.off);
-    setState(() => _flashOn = next);
+    await controller.setFlashMode(next ? FlashMode.torch : FlashMode.off);
+    if (mounted) setState(() => _flashOn = next);
   }
 
-  Future<void> _capture() async {
-    final controller = _controller;
-    if (controller == null || !controller.value.isInitialized) return;
+  Future<void> _capture(CameraController controller) async {
+    if (!controller.value.isInitialized) return;
     try {
       final picture = await controller.takePicture();
       // Torch stays on continuously until explicitly cleared.
@@ -143,69 +165,88 @@ class _CameraScreenState extends ConsumerState<CameraScreen>
         ),
       ),
       extendBodyBehindAppBar: true,
-      body: FutureBuilder<void>(
-        future: _init,
-        builder: (context, snapshot) {
-          if (_error != null) {
-            return _PermissionErrorView(
-              message: _error!,
-              blocked: _permissionBlocked,
-              onRetry: () {
-                setState(() {
-                  _error = null;
-                  _permissionBlocked = false;
-                  _init = _setup();
-                });
-              },
-            );
-          }
-          if (_controller == null ||
-              !_controller!.value.isInitialized) {
-            return const Center(
-              child: CircularProgressIndicator(color: Colors.white),
-            );
-          }
-          return Stack(
-            fit: StackFit.expand,
+      body: switch (_state) {
+        _Initializing() => const Center(
+            child: CircularProgressIndicator(color: Colors.white),
+          ),
+        _Denied(:final message, :final blocked) => _PermissionErrorView(
+            message: message,
+            blocked: blocked,
+            onRetry: _retry,
+          ),
+        _NoCameras() => const Center(
+            child: Text(
+              'No cameras available',
+              style: TextStyle(color: Colors.white),
+            ),
+          ),
+        _Ready(:final controller) => _CameraPreviewLayer(
+            controller: controller,
+            flashOn: _flashOn,
+            onToggleFlash: () => _toggleFlash(controller),
+            onCapture: () => _capture(controller),
+            onPickFromGallery: _pickFromGallery,
+          ),
+      },
+    );
+  }
+}
+
+class _CameraPreviewLayer extends StatelessWidget {
+  const _CameraPreviewLayer({
+    required this.controller,
+    required this.flashOn,
+    required this.onToggleFlash,
+    required this.onCapture,
+    required this.onPickFromGallery,
+  });
+
+  final CameraController controller;
+  final bool flashOn;
+  final VoidCallback onToggleFlash;
+  final VoidCallback onCapture;
+  final VoidCallback onPickFromGallery;
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        CameraPreview(controller),
+        const _GuideOverlay(),
+        Positioned(
+          left: 0,
+          right: 0,
+          bottom: 32,
+          child: Column(
             children: [
-              CameraPreview(_controller!),
-              const _GuideOverlay(),
-              Positioned(
-                left: 0,
-                right: 0,
-                bottom: 32,
-                child: Column(
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                      children: [
-                        IconButton(
-                          icon: Icon(
-                            _flashOn ? Icons.flash_on : Icons.flash_off,
-                            color: Colors.white,
-                          ),
-                          onPressed: _toggleFlash,
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.photo_library,
-                              color: Colors.white),
-                          onPressed: _pickFromGallery,
-                        ),
-                      ],
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  IconButton(
+                    icon: Icon(
+                      flashOn ? Icons.flash_on : Icons.flash_off,
+                      color: Colors.white,
                     ),
-                    const SizedBox(height: 16),
-                    FloatingActionButton.large(
-                      heroTag: 'capture',
-                      onPressed: _capture,
-                      child: const Icon(Icons.camera_alt, size: 40),
-                    ),
-                  ],
-                ),
+                    onPressed: onToggleFlash,
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.photo_library,
+                        color: Colors.white),
+                    onPressed: onPickFromGallery,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              FloatingActionButton.large(
+                heroTag: 'capture',
+                onPressed: onCapture,
+                child: const Icon(Icons.camera_alt, size: 40),
               ),
             ],
-          );
-        },
-      ),
+          ),
+        ),
+      ],
     );
   }
 }

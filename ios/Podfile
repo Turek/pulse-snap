@@ -49,8 +49,13 @@ post_install do |installer|
       # Without these, Permission.<x>.request() returns denied without ever
       # showing the iOS prompt. See:
       # https://pub.dev/packages/permission_handler#setup
-      config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] ||= [
-        '$(inherited)',
+      #
+      # Use append (not ||=) so these macros survive even if Flutter or
+      # another pod pre-sets GCC_PREPROCESSOR_DEFINITIONS for some target.
+      # ||= would silently no-op in that case and the camera prompt would
+      # disappear again — exactly the bug this is meant to fix.
+      config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] ||= ['$(inherited)']
+      config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] += [
         'PERMISSION_CAMERA=1',
         'PERMISSION_PHOTOS=1',
       ]
