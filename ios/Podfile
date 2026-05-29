@@ -44,6 +44,21 @@ post_install do |installer|
       # Keep every pod at the project's minimum so none falls back below the
       # floor that google_mlkit_* requires.
       config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = MIN_IOS_VERSION
+
+      # permission_handler is opt-in per permission via compile-time macros.
+      # Without these, Permission.<x>.request() returns denied without ever
+      # showing the iOS prompt. See:
+      # https://pub.dev/packages/permission_handler#setup
+      #
+      # Use append (not ||=) so these macros survive even if Flutter or
+      # another pod pre-sets GCC_PREPROCESSOR_DEFINITIONS for some target.
+      # ||= would silently no-op in that case and the camera prompt would
+      # disappear again — exactly the bug this is meant to fix.
+      config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] ||= ['$(inherited)']
+      config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] += [
+        'PERMISSION_CAMERA=1',
+        'PERMISSION_PHOTOS=1',
+      ]
     end
   end
 end

@@ -36,6 +36,10 @@ class TesseractScanner extends IScanner {
   /// Run Tesseract and return raw candidate numbers + raw text, without any
   /// orchestrator-level assignment logic. Used by the cropping pipeline so
   /// the orchestrator can do its own ranged-slot assignment.
+  ///
+  /// Not safe to call on iOS — flutter_tesseract_ocr ^0.4.x fatal-errors at
+  /// SwiftyTesseract init. Callers must gate by [isSupported] (the orchestrator
+  /// drops TesseractScanner from the iOS pipeline).
   Future<TesseractCandidates> scanForCandidates(File imageFile) async {
     String tessdata;
     try {
@@ -82,6 +86,11 @@ class TesseractScanner extends IScanner {
       rawText: lines.join(' | '),
     );
   }
+
+  /// True on platforms where flutter_tesseract_ocr can actually run. The
+  /// orchestrator uses this to decide whether to include TesseractScanner
+  /// in the pipeline.
+  static bool get isSupported => !Platform.isIOS;
 
   @override
   Future<ScanResult> scan(File imageFile) async {
